@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo Interativo - Twine Style</title>
+    <link rel="stylesheet" href="../style/game2.css">
+</head>
+
+<body>
+    <div class="stats-panel" id="statsPanel">
+        <div class="stat-item">
+            <span>Personagens:</span>
+            <span class="stat-value" id="charStat">Nenhum</span>
+        </div>
+        <div class="stat-item">
+            <span>Dicas:</span>
+            <span class="stat-value" id="tipsStat">0</span>
+        </div>
+        <div class="stat-item">
+            <span>Caminho:</span>
+            <span class="stat-value" id="pathStat">Neutro</span>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="art-section">
+            <div class="art-placeholder" id="artContainer">
+                <!-- Sua arte vai aqui -->
+            </div>
+        </div>
+
+        <div class="text-section">
+            <div class="story-text" id="storyText">
+                VOCÊ ESTÁ PRONTO PARA COMEÇAR SUA JORNADA?
+            </div>
+        </div>
+
+        <div class="choices-section" id="choicesContainer">
+            <!-- Botões aparecerão aqui -->
+        </div>
+    </div>
+
+    <button class="restart-btn" onclick="restartGame()" id="restartBtn" style="display: none;">
+        🔄 Reiniciar Jogo
+    </button>
+
+    <script src="../scripts/game2.js" defer></script>
+</body>
+
+</html>
