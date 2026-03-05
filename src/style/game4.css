@@ -15,11 +15,15 @@
   --hydrangea: #6d88b3;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #000;
+  background: var(--fog-bg);
   font-family: var(--primary-font-family);
 }
 
@@ -32,9 +36,12 @@ html, body {
 
 #game-board {
   display: grid;
-  position: absolute;
-  top: 0;
-  left: 0;
+  width: 3200px;
+  height: 2000px;
+  background-image: url(../assets/game4-assets/map.png);
+  background-repeat: no-repeat;
+  background-size: cover;
+  
   z-index: 1;
   will-change: transform;
 }
@@ -44,10 +51,10 @@ html, body {
 }
 
 .piece {
-  background-color: var(--water);
+  background-color: transparent;
   width: var(--tile-size);
   height: var(--tile-size);
-  image-rendering: pixelated;
+  z-index: 10;
 
   display: flex;
   align-items: center;
@@ -55,11 +62,13 @@ html, body {
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
   font-size: 32px;
-  color: rgba(255, 255, 255, 0.8);
+  color: transparent;
   text-shadow: 2px 2px 0px #000;
 }
 
-/* Modelos */
+/* Modelos:
+ Para ativar a grid desenhada, precisa ativar esses elementos aqui, se quiser
+/*
 .water {
   background-color: var(--fog-bg); 
 }
@@ -79,12 +88,61 @@ html, body {
   border-radius: 50% 50% 10% 10%;
   transform: scale(0.8);
 }
+*/
+
+/* Personagens: */
+
+.sprite-P {
+  background-image: url('../assets/cavalo_static.png');
+}
+.sprite-p {
+  background-image: url('../assets/bemtevi_static.png');
+}
+.sprite-M {
+  background-image: url('../assets/jacana_static.png');
+}
+.sprite-m {
+  background-image: url('../assets/capivara_static.png');
+}
+.sprite-O {
+  background-image: url('../assets/capivara_walking.png');
+}
+.sprite-o {
+  background-image: url('../assets/urutu_static.png');
+}
+.sprite-C {
+  background-image: url('../assets/graxaim_static.png');
+}
+.sprite-c {
+  background-image: url('../assets/graxaim_walking.png');
+}
+.sprite-Q {
+  background-image: url('../assets/filhotes_static.png');
+}
+.sprite-q {
+  background-image: url('../assets/carcara_static.png');
+}
+
+.sprite-P, .sprite-p, .sprite-M, .sprite-m, .sprite-O, .sprite-o, .sprite-C, .sprite-c, .sprite-Q, .sprite-q {
+  width: 80px;
+  height: 80px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 50;
+  animation: npcFloat 2s ease-in-out infinite;
+}
+
+@keyframes npcFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
 
 /* Personagem */
 #player {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 0;
+  left: 0;
   width: 60px;
   height: 60px;
   background: url(../assets/player.png);
@@ -92,8 +150,8 @@ html, body {
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;
-  transition: transform .1s;
-  z-index: 100;
+  transition: transform .15s ease-out;
+  z-index: 999 !important;
   display: none;
 }
 
@@ -307,13 +365,13 @@ html, body {
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
-/* Centralizando o HP perfeitamente */
 #ui > div#hp {
   color: #c0392b;
   background: rgba(255, 223, 223, 0.9);
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  padding: 15px 15px;
 }
 
 #pause-btn {
@@ -327,7 +385,6 @@ html, body {
 }
 
 #pause-menu {
-  /* Mantendo suas configurações atuais */
   background-color: rgba(0, 0, 0, 0.473);
   color: #fff;
   height: 500px;
@@ -353,9 +410,8 @@ html, body {
   gap: 20px;
   font-size: 50px;
   
-  /* Fixando no rodapé do menu */
   position: absolute;
-  bottom: 30px; /* Distância da borda inferior do menu */
+  bottom: 30px;
   left: 0;
   right: 0;
   margin-top: 0;
@@ -363,8 +419,8 @@ html, body {
 
 .pause-options div {
   background-color: lightblue;
-  color: #333; /* Melhora o contraste no ícone */
-  width: 80px; /* Tamanho fixo para os botões ficarem iguais */
+  color: #333;
+  width: 80px;
   height: 80px;
   display: flex;
   align-items: center;
@@ -399,7 +455,7 @@ html, body {
     bottom: 20px;
     left: 20px;
     right: 20px;
-    display: none; /* Controlado pelo JS */
+    display: none;
     grid-template-areas: 
         ". up ."
         "left . right"
@@ -412,14 +468,14 @@ html, body {
     width: 60px;
     height: 60px;
     background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(5px); /* Efeito moderno de vidro */
-    border-radius: 50%;
+    backdrop-filter: blur(5px);
+    border-radius: 10px;
     border: 2px solid white;
     display: flex;
     align-items: center;
     justify-content: center;
     user-select: none;
-    -webkit-tap-highlight-color: transparent; /* Remove o quadrado azul no toque */
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Media Queries */

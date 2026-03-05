@@ -1,39 +1,36 @@
 /* Configuração para identificar o tipo de dispositivo */
 
 const UIManager = {
-    isTouchDevice: false,
-    deviceType: 'desktop',
+  isTouchDevice: false,
+  deviceType: 'desktop',
 
-    init() {
-        this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0)
-        
-        const width = window.innerWidth
-        if (this.isTouchDevice) {
-            this.deviceType = width > 1024 ? 'tablet' : 'mobile'
-        } else {
-            this.deviceType = 'desktop'
-        }
-
-        this.applyInterface()
-    },
-
-    applyInterface() {
-        const controls = document.getElementById('mobile-controls')
-        if (!controls) return
-
-        // Lógica de exibição:
-        // Se for mobile ou tablet, mostramos os controles de toque.
-        if (this.isTouchDevice) {
-            controls.style.display = 'grid' // Ou 'flex', dependendo do seu CSS
-            console.log(`[UI] Modo ${this.deviceType} ativado.`)
-        } else {
-            controls.style.display = 'none'
-            console.log("[UI] Modo Desktop ativado. Controles ocultos.")
-        }
+  init() {
+    this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0)
+    
+    const width = window.innerWidth
+    if (this.isTouchDevice) {
+      this.deviceType = width > 1024 ? 'tablet' : 'mobile'
+    } else {
+      this.deviceType = 'desktop'
     }
+
+    this.applyInterface()
+  },
+
+  applyInterface() {
+    const controls = document.getElementById('mobile-controls')
+    if (!controls) return
+
+    if (this.isTouchDevice) {
+        controls.style.display = 'grid'
+        console.log(`[UI] Modo ${this.deviceType} ativado.`)
+    } else {
+        controls.style.display = 'none'
+        console.log("[UI] Modo Desktop ativado. Controles ocultos.")
+    }
+  }
 }
 
-// Inicializa a detecção ao carregar a página
 window.addEventListener('DOMContentLoaded', () => UIManager.init())
 
 const ROWS = 25
@@ -43,7 +40,7 @@ const TILE_SIZE = 80
 let player = {
   x: 14,
   y: 15,
-  hp: 3,
+  hp: 1,
   friends: 0,
   followers: 0
 }
@@ -53,31 +50,31 @@ let pauseGame = true
 let activeInterval = null
 
 const map = [
-    "AAAAAAAAWWWWWWWWWWWWWWWWAAAAAAAAAAAAAAAA",
-    "AAAAAAAAAWWWWWWWWWWWWWAAAAAAAAAAAAAAAAAA",
-    "AAAAAAAAAAWWWWWWWWWWAAAAAAAAAAAAAAAAAAAA",
-    "WA.,.,.,.,.WWWWWWWW,.T.,.,.,.,.,.,.,.,AA",
-    "WW,.,T,.,PWWWWWWW.,.,T,.,.,.M.,.,.,.,.AA",
-    "WWW,.TWWWWWWWWWW.,.,.T.,.,.,.,.,.,.,.,AA",
-    "WWWWWTWWWWWWWW,.,.,.,TTTTTTTTTT.,.,.,.AA",
-    "WWWWPTWWWWWW.,.,.,.,.,.,.,.,.,T,.,.,.,AA",
-    "WWWW,T,.,.,.,.,.,.,.,.,.,.,.,.T.,.,.,.AA",
-    "WW.,.T.,.,.,.,.,.,O,.,.,.,.,.,T,.,.,.,AA",
-    "WA,.,T,.,.,.,.,.,.,.,.,.,.,.,.T.,.,.,.AA",
-    "WA.,.TT,.,.,.,.,.,.,.,.,.,.,.,T,.,.,.,AA",
-    "AA,.,.TTTTTTTTTTTTTTTTTTTTTTTTT.,.,.,.AA",
-    "AA.,.,.,.C.,.,.,.,.,.,.,.,.,.,.,.,.,.,AA",
-    "AA,.,.,.,.,.,.,.,.,.,TTTT.,.,.,.,.,.,.AA",
-    "AA.,.M.,.,.,.,.,.,.,.T.,T,.,.,.,.,.,.,AA",
-    "AA,.,M,.,.,.,.,.,.,.,T,.T.,.,.,.,.,.,.AA",
-    "AA.,.,.,.,.,.,.,.,.,.T.,T,.,.,.,.,.,.,AA",
-    "AA,.,.,.,.,.,.,.,.,.,T,.T.,.,.,.,.,.,.AA",
-    "AA.,.,.,.O.,.,.,.,.,.T.,T,.,.,.,C,.,.,AA",
-    "AA,.,.,.,.,.,.,.,.,.,T,.T.,.,.,.,.,.,.AA",
-    "AA.,.,.,.,.,.,.,.,.,.T.,M,.,.,.,.,.,.,AA",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  "AAAAAAAAWWWWWWWWWWWWWWWWAAAAAAAAAAAAAAAA",
+  "AAAAAAAAAWWWWWWWWWWWWWAAAAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAWWWWWWWWWWAAAAAAAAAAAAAAAAAAAA",
+  "WA.,.,.,.,.WWWWWWWWAAAAAAAAAAAAAAAAAAAAA",
+  "WW,.,T,.,.WWWWWWWW,.,T,.,.,.o.,.,.,.,.AA",
+  "WWW,.TWWWWWWWWWWW,.,.T.,.,.,.,.,.,.,.,AA",
+  "WWWWWTWWWWWWWWW.,P,.,TTTTTTTTTT.,.,.,.AA",
+  "WWWWWTWWWWWWWW.,.,.,.,.,.,.,.,T,.,.,.,AA",
+  "WWWW,T,.,.p.,.,.,.,.,.,.,.,.,.T.,.,.,.AA",
+  "WW.,.T.,.,.,.,.,.,q,.,.,.,.,.,T,.,.,.,AA",
+  "WA,.,T,.,.,.,.,.,.,.,.,.,.,.,.T.,.,.,.AA",
+  "WA.,.TT,.,.,.,.,.,.,.,.,.,.,.,T,.,.,.,AA",
+  "AA,.,.TTTTTTTTTTTTTTTTTTTTTTTTT.,.,.,.AA",
+  "AA.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,AA",
+  "AA,.,.,.,C,.,.,.,.,.,.,.,.,.,.,.,.,.,.AA",
+  "AA.,.M.,.,.,.,.,.,.,.TTTT,.,.,.,.,.,.,AA",
+  "AA,.,.,.,.,.,.,.,.,.,T,.T.,.m.,.,.,.,.AA",
+  "AA.,.,.,.,.,.,.,.,.,.T.,T,.,.,.,.,.,.,AA",
+  "AA,.,.,.,.,.,.,.,.,.,T,.T.,.,.,.,.,.,.AA",
+  "AA.,.,.,.O.,.,.,.,.,.T.,T,.,.,.,c,.,AAAA",
+  "AA,.,.,.,.,.,.,.,.,.,T,.T.,.,.,.,.,AAAAA",
+  "AA.,.,.,.,.,.,.,.,.,.T.,Q,.,.,.AAAAAAAAA",
+  "AAAAAAAAAA,.,.,.,.,.,.,.,.,AAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 ]
 
 const moldes = {
@@ -86,11 +83,31 @@ const moldes = {
   '.': createMold('grass'),
   ',': createMold('grass2'),
   'T': createMold('dirt'),
-  'P': createMold('minigame-spot'),
-  'M': createMold('minigame-spot'),
-  'O': createMold('minigame-spot'),
-  'C': createMold('minigame-spot')
+  'P': createMold('sprite-P'),
+  'p': createMold('sprite-p'),
+  'M': createMold('sprite-M'),
+  'm': createMold('sprite-m'),
+  'O': createMold('sprite-O'),
+  'o': createMold('sprite-o'),
+  'C': createMold('sprite-C'),
+  'c': createMold('sprite-c'),
+  'Q': createMold('sprite-Q'),
+  'q': createMold('sprite-q')
 }
+
+/*
+  Sprites:
+  P = Pesca (Cavalo)
+  p = Pesca (Bem-te-vi)
+  M = Jogo da Memória (Jaçanã)
+  m = Jogo da Memória (Capivara)
+  C = Caça (Graxaim)
+  c = Caça (Filhote)
+  O = Colheita (Mamãe Quero-quero)
+  o = Colheita (Urutu)
+  Q = Quebra-cabeça (Os três primeiros)
+  q = Quebra-cabeça (Carcará)
+*/
 
 function createMold(classe) {
   const div = document.createElement('div')
@@ -106,14 +123,20 @@ function renderMap() {
   board.style.gridTemplateColumns = `repeat(${COLS}, ${TILE_SIZE}px)`
   board.style.gridTemplateRows = `repeat(${ROWS}, ${TILE_SIZE}px)`
 
+  const allCharacters = ['P', 'p', 'M', 'm', 'O', 'o', 'C', 'c', 'Q', 'q']
+
   const frag = document.createDocumentFragment()
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const char = map[y][x]
+      if(!moldes[char]) continue
+
       const clone = moldes[char].cloneNode(true)
 
-      if (['P', 'M', 'O', 'C'].includes(char)) {
-        clone.innerText = char
+      if (!allCharacters.includes(char)) {
+        clone.style.opacity = "0"
+      } else {
+        clone.style.opacity = "1"
       }
 
       frag.appendChild(clone)
@@ -131,14 +154,10 @@ function renderMap() {
 function updateCamera(isResizing = false) {
   const board = document.getElementById('game-board')
   const playerDiv = document.getElementById('player')
-  
   if (!board || !playerDiv) return
 
-  if (isResizing) {
-    board.classList.remove('smooth-move')
-  } else {
-    board.classList.add('smooth-move')
-  }
+  if (isResizing) board.classList.remove('smooth-move')
+  else board.classList.add('smooth-move')
 
   const centerX = window.innerWidth / 2
   const centerY = window.innerHeight / 2
@@ -146,48 +165,72 @@ function updateCamera(isResizing = false) {
   const playerWorldX = (player.x * TILE_SIZE) + (TILE_SIZE / 2)
   const playerWorldY = (player.y * TILE_SIZE) + (TILE_SIZE / 2)
 
-  const offX = centerX - playerWorldX
-  const offY = centerY - playerWorldY
-  
+  let offX = centerX - playerWorldX
+  let offY = centerY - playerWorldY
+
+  const mapWidth = COLS * TILE_SIZE
+  const mapHeight = ROWS * TILE_SIZE
+
+  if (mapWidth > window.innerWidth) {
+    const minX = window.innerWidth - mapWidth
+    offX = Math.min(0, Math.max(offX, minX))
+  } else {
+    offX = (window.innerWidth - mapWidth) / 2
+  }
+
+  if (mapHeight > window.innerHeight) {
+    const minY = window.innerHeight - mapHeight
+    offY = Math.min(0, Math.max(offY, minY))
+  } else {
+    offY = (window.innerHeight - mapHeight) / 2
+  }
+
   board.style.transform = `translate(${offX}px, ${offY}px)`
 
+  const screenX = playerWorldX + offX
+  const screenY = playerWorldY + offY
   const scale = (facing === "left") ? -1 : 1
-  playerDiv.style.transform = `translate(-50%, -50%) scaleX(${scale})`
+
+  playerDiv.style.transform = `translate(${screenX}px, ${screenY}px) translate(-50%, -50%) scaleX(${scale})`
 }
 
 document.addEventListener("keydown", (e) => {
   if (pauseGame) return
 
-  let newX = player.x
-  let newY = player.y
-
   const key = e.key.toLowerCase()
-  if (key === 'arrowup' || key === 'w') newY--
-  if (key === 'arrowdown' || key === 's') newY++
-  if (key === 'arrowleft' || key === 'a') {
-    newX--
-    facing = "right"
-  }
-  if (key === 'arrowright' || key === 'd') {
-    newX++
-    facing = "left"
-  }
+  if (key === 'arrowup' || key === 'w') handleMove(0, -1)
+  if (key === 'arrowdown' || key === 's') handleMove(0, 1)
+  if (key === 'arrowleft' || key === 'a') handleMove(-1, 0, "left")
+  if (key === 'arrowright' || key === 'd') handleMove(1, 0, "right")
+  
+  if (key === 'e') interact()
+})
+
+function handleMove(dx, dy, newFacing) {
+  if (pauseGame) return
+
+  const newX = player.x + dx
+  const newY = player.y + dy
+
+  // Atualiza a direção do olhar primeiro
+  if (newFacing) facing = newFacing;
 
   if (newY >= 0 && newY < ROWS && newX >= 0 && newX < COLS) {
-    const charArray = map[newY].split('')
-    const tile = charArray[newX]
-    
-    if (tile !== 'W' && tile !== 'A') { 
+    const tile = map[newY][newX]
+    const blockers = ['W', 'A', 'P', 'p', 'M', 'm', 'O', 'o', 'C', 'c', 'Q', 'q']
+
+    if (!blockers.includes(tile)) {
       player.x = newX
       player.y = newY
-      updateCamera()
-        
-      if (['P', 'M', 'O', 'C'].includes(tile)) {
-        openMinigame(tile, newX, newY, charArray)
+    } else {
+      if (['P', 'p', 'M', 'm', 'O', 'o', 'C', 'c', 'Q', 'q'].includes(tile)) {
+        console.log("NPC na frente!")
       }
     }
   }
-})
+  // Chama a câmera apenas UMA vez ao final de todo o cálculo
+  updateCamera()
+}
 
 /* LÓGICA DOS MINIJOGOS */
 
@@ -199,10 +242,17 @@ function openMinigame(type, x, y, charArray) {
   if (container) container.style.display = 'flex'
   if (content) content.innerHTML = ""
 
-  if (type === 'P') playFishing(x, y, charArray)
-  if (type === 'M') playMemory(x, y, charArray)
-  if (type === 'O') playDnD(x, y, charArray)
-  if (type === 'C') playCatch(x, y, charArray)
+  if (type === 'P' || type === 'p') {
+    playFishing(x, y, charArray)
+  } else if (type === 'M' || type === 'm') {
+    playMemory(x, y, charArray)
+  } else if (type === 'O' || type === 'o') {
+    playDnD(x, y, charArray)
+  } else if (type === 'C' || type === 'c') {
+    playCatch(x, y, charArray)
+  } else if (type === 'Q' || type === 'q') {
+    playPuzzle(x, y, charArray)
+  }
 }
 
 function closeMinigame() {
@@ -211,7 +261,7 @@ function closeMinigame() {
   pauseGame = false
 }
 
-function reduceHP() {
+function restart() {
   player.hp--
   const uihp = document.getElementById('hp')
   const uiHearts = document.getElementById('ui-hearts')
@@ -246,30 +296,42 @@ function reduceHP() {
 }
 
 function winMinigame(x, y, charArray) {
+  console.log(`Você resgatou um amigo! Amigos resgatados: ${player.friends}`)
   player.friends++
   const progEl = document.getElementById('prog')
   if (progEl) progEl.innerText = `${player.friends}/10`
 
-  charArray[x] = '.'
+  const correctGrass = ((x + y) % 2 === 0) ? ',' : '.'
+  const grassClass = (correctGrass === '.') ? 'grass' : 'grass2'
+
+  charArray[x] = correctGrass
   map[y] = charArray.join('')
 
   const index = y * COLS + x
   const board = document.getElementById('game-board')
   if (board && board.children[index]) {
-    board.children[index].className = 'piece grass'
+    board.children[index].className = `piece ${grassClass}`
+    board.children[index].innerText = ""
   }
   
   closeMinigame()
 
   if (player.friends >= 10) {
-    window.alert("Parabéns! Você resgatou todos os 10 amigos!")
+    winGame()
   }
 }
 
+function winGame() {
+  window.alert('Parabéns, você encontrou todos os 10 amigos! O jogo agora será reiniciado.')
+  restartGame()
+}
+
+/* Celulares */
+
 function setupMobileButtons() {
     const btns = {
-        'btn-up': [0, -1, facing],
-        'btn-down': [0, 1, facing],
+        'btn-up': [0, -1, null],
+        'btn-down': [0, 1, null],
         'btn-left': [-1, 0, "right"],
         'btn-right': [1, 0, "left"]
     }
@@ -279,10 +341,39 @@ function setupMobileButtons() {
         if (el) {
             el.addEventListener('touchstart', (e) => {
                 e.preventDefault()
-                handleMove(player.x + dx, player.y + dy, dir)
+                handleMove(dx, dy, dir)
             }, {passive: false})
         }
     }
+}
+
+function interact() {
+  if (pauseGame) return
+
+  const checkDirs = [
+    {dx: 0, dy: -1},
+    {dx: 0, dy: 1},
+    {dx: -1, dy: 0},
+    {dx: 1, dy: 0},
+    {dx: -1, dy: -1},
+    {dx: 1, dy: -1},
+    {dx: -1, dy: 1},
+    {dx: 1, dy: 1}
+  ]
+
+  for (let dir of checkDirs) {
+    let nx = player.x + dir.dx
+    let ny = player.y + dir.dy
+
+    if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+      const tile = map[ny][nx]
+      if(['P', 'p', 'M', 'm', 'O', 'o', 'C','c', 'Q', 'q'].includes(tile)) {
+        const charArray = map[ny].split('')
+        openMinigame(tile, nx, ny, charArray)
+        return
+      }
+    }
+  }
 }
 
 /* MINIJOGOS */
@@ -299,6 +390,7 @@ function playFishing(x, y, charArray) {
   btn.style.color = "#fff"
   btn.style.borderRadius = "10px"
   btn.style.cursor = "pointer"
+  btn.style.userSelect = "none"
 
   let catched = false
   let timeout = setTimeout(() => {
@@ -311,7 +403,6 @@ function playFishing(x, y, charArray) {
     if (catched) winMinigame(x, y, charArray)
     else {
       clearTimeout(timeout)
-      reduceHP()
       closeMinigame()
     }
   }
@@ -359,12 +450,6 @@ function playMemory(x, y, charArray) {
             prev.innerText = '❓'
             canClick = true
           }, 700)
-          errors++
-          if (errors >= 2) {
-            setTimeout(() => {
-              reduceHP()
-            }, 500)
-          }
         }
       }
     }
@@ -381,9 +466,11 @@ function playDnD(x, y, charArray) {
   p.innerText = "🌰"
   p.style.fontSize = "50px"
   p.style.cursor = "pointer"
+  p.style.userSelect = "none"
   c.innerText = "🧺"
   c.style.fontSize = "50px"
   c.style.cursor = "pointer"
+  c.style.userSelect = "none"
 
   let selected = false
   p.onclick = () => { 
@@ -394,7 +481,6 @@ function playDnD(x, y, charArray) {
   c.onclick = () => {
     if (selected) winMinigame(x, y, charArray)
     else {
-      reduceHP()
       closeMinigame()
     }
   }
@@ -423,6 +509,7 @@ function playCatch(x, y, charArray) {
     animal.style.display = "flex"
     animal.style.alignItems = "center"
     animal.style.justifyContent = "center"
+    animal.style.userSelect = "none"
 
     // Limpa qualquer intervalo antigo antes de começar
     if (activeInterval) clearInterval(activeInterval)
@@ -439,7 +526,6 @@ function playCatch(x, y, charArray) {
             clearInterval(activeInterval)
             activeInterval = null
             timePanel.style.display = 'none'
-            reduceHP()
             closeMinigame()
         }
     }, 1000)
@@ -454,6 +540,27 @@ function playCatch(x, y, charArray) {
 
     content.appendChild(animal)
 }
+
+function playPuzzle(x, y, charArray) {
+  document.getElementById('mg-title').innerText = "Quebra-cabeça"
+  document.getElementById('mg-desc').innerText = "Em construção..."
+  
+  const content = document.getElementById('mg-content')
+  const header = document.getElementById('mg-header')
+  const heartsBox = document.querySelector('.hearts-box')
+  const closeBtn = document.getElementById('mg-close');
+
+  closeBtn.style.background = '#2ecc71'; // Verde
+  closeBtn.innerText = 'Resgatar Amigo (Pular)';
+
+  closeBtn.onclick = () => {
+    winMinigame(x, y, charArray);
+    closeBtn.style.background = 'rgb(167, 8, 8)';
+    closeBtn.innerText = 'Fugir';
+    closeBtn.onclick = closeMinigame;
+  };
+}
+
 
 // ATUALIZE sua função closeMinigame para isso:
 function closeMinigame() {
@@ -472,7 +579,7 @@ function closeMinigame() {
     pauseGame = false
 }
 
-/* FUNÇÕES DOS MENUS (ADICIONADAS) */
+/* FUNÇÕES DOS MENUS */
 
 document.addEventListener("keydown", (e) => {
     const key = e.key
@@ -482,22 +589,18 @@ document.addEventListener("keydown", (e) => {
 
     // Verifica se a tecla pressionada foi Espaço
     if (key === " " || key === "Spacebar") {
-        e.preventDefault() // Impede a página de rolar
+        e.preventDefault()
 
-        // 1. Se o Menu Principal estiver visível, inicia o jogo
         if (window.getComputedStyle(mainMenu).display !== 'none') {
             startGame()
             return
         }
 
-        // 2. Se o Menu de Game Over estiver visível, recarrega a página
         if (gameOverMenu && window.getComputedStyle(gameOverMenu).display === 'flex') {
             restartGame()
             return
         }
 
-        // 3. Alternar entre Pausa e Play durante o jogo
-        // Se o minijogo estiver aberto, ignoramos o espaço para não bugar
         const mgContainer = document.getElementById('minigame-container')
         if (mgContainer && mgContainer.style.display === 'flex') return
 
@@ -508,7 +611,6 @@ document.addEventListener("keydown", (e) => {
         }
     }
     
-    // Atalho extra: Tecla ESC para pausar/despausar
     if (key === "Escape") {
         if (!pauseGame) pause()
         else if (pauseMenu.style.display === 'flex') play()
@@ -534,6 +636,17 @@ function play() {
   pauseGame = false
 }
 
+function togglePause() {
+  const pauseMenu = document.getElementById('pause-menu')
+  const isPaused = window.getComputedStyle(pauseMenu).display === 'flex'
+
+  if (isPaused) {
+    play()
+  } else {
+    pause()
+  }
+}
+
 function restartGame() {
   location.reload()
 }
@@ -543,11 +656,12 @@ function backToIndex() {
 }
 
 window.addEventListener('resize', () => {
-    updateCamera(true)
+  updateCamera(true)
 })
 
 window.onload = () => {
-    UIManager.init()
-    setupMobileButtons()
-    renderMap()
+  console.log(`Dispositivo: ${UIManager.deviceType}`)
+  UIManager.init()
+  setupMobileButtons()
+  renderMap()
 }

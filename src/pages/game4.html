@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="../assets/player.png" type="image/png">
   <title>O Grande Encontro</title>
   <link rel="stylesheet" href="../style/game4.css">
 </head>
@@ -22,7 +23,11 @@
       <div id="minigame-box">
         <div id="mg-header">
           <h2 id="mg-title">Minijogo</h2>
-          <div class="hearts-box"><span id="counter">05</span><span id="mg-hearts">3 </span> &#10084;</div>
+          <div class="hearts-box">
+            <span id="counter">05</span>
+            <span id="mg-hearts">3 </span>
+            <span id="mg-heart-icon"> &#10084;</span>
+          </div>
         </div>
         <p id="mg-desc">Instruções</p>
         <div id="mg-content"></div>
@@ -34,8 +39,10 @@
    
   <div id="ui">
     <div>Amigos <span id="prog">0/10</span></div>
-    <div id="hp"><span id="ui-hearts">3</span> &#10084;</div>
-    <div onclick="pause()" id="pause-btn">| |</div>
+    <div id="hp">
+      <span id="ui-heart-icon">💔</span>
+    </div>
+    <div onclick="togglePause()" id="pause-btn">| |</div>
   </div>
 
   <div id="main-menu">
@@ -46,6 +53,7 @@
       <p><strong>Espaço:</strong> Pausar, voltar ao jogo, iniciar o jogo, Reiniciar (ao perder)</p>
       <p><strong>ESC:</strong> Pausar, voltar a jogar</p>
       <p><strong>F11:</strong> Tela cheia</p>
+      <p><strong>E:</strong> Interagir</p>
     </div>
     <div>
       <button type="button" id="back-btn" onclick="backToIndex()">&lt;</button>
@@ -61,6 +69,7 @@
       <p><strong>Espaço:</strong> Pausar, voltar ao jogo, iniciar o jogo, Reiniciar (ao perder)</p>
       <p><strong>ESC:</strong> Pausar, voltar a jogar</p>
       <p><strong>F11:</strong> Tela cheia</p>
+      <p><strong>E:</strong> Interagir</p>
     </div>
     <div class="pause-options">
       <div onclick="backToIndex()">&lt;</div>
