@@ -1,191 +1,22 @@
-/* Game - estilos (variáveis para fácil tema) */
-
-:root {
-    --color-primary: #32CD32; /* Verde limão vibrante */
-    --color-danger: #FF6347; /* Vermelho tomate suave */
-    --color-success: #1E90FF; /* Azul dodger */
-    --color-bg: #F0FFF0; /* Verde muito claro */
-    --color-bg-gradient-start: #98FB98; /* Verde pálido */
-    --color-bg-gradient-end: #87CEEB; /* Azul céu */
-    --shadow-glow: 0 0 15px rgba(255, 215, 0, 0.5);
-    --font-ui: clamp(18px, 3vw, 24px);
-    --font-modal: clamp(32px, 6vw, 56px);
-    --z-ui: 10;
-    --z-modal: 20;
-}
-
-* {
+/* Keep it minimal, mostly standard resets since Tailwind handles the rest */
+html, body {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    background: var(--color-bg);
-    height: 100vh;
     width: 100vw;
+    height: 100vh;
     overflow: hidden;
-    font-family: 'Comic Sans MS', cursive, Arial, sans-serif;
+    background-image: url('../assets/game3-assets/fundo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #2c221a; /* fallback dark color */
+    touch-action: none; /* Prevent scroll on mobile devices */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: linear-gradient(to bottom, var(--color-bg-gradient-start), var(--color-bg-gradient-end));
-    box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.3);
-}
-
-.ui {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #333;
-    font-size: var(--font-ui);
-    background: rgba(255, 255, 255, 0.8);
-    padding: 15px;
-    border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    z-index: var(--z-ui);
-    font-weight: bold;
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.game-over,
-.level-complete {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--color-danger);
-    font-size: var(--font-modal);
-    text-align: center;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    display: none;
-    z-index: var(--z-modal);
-    animation: bounceIn 0.5s ease-out;
-}
-
-.level-complete {
-    color: var(--color-success);
-}
-
-.restart-btn,
-.next-btn {
-    background: var(--color-primary);
-    color: #333;
-    border: none;
-    padding: 15px 40px;
-    font-size: clamp(18px, 4vw, 24px);
-    border-radius: 25px;
-    cursor: pointer;
-    margin: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    font-weight: bold;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.restart-btn:hover,
-.next-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-}
-
-.controls {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    color: var(--color-primary);
-    font-size: 16px;
-    text-shadow: 0 0 3px var(--color-primary);
-    z-index: var(--z-ui);
-}
-
-@keyframes bounceIn {
-    0% {
-        transform: translate(-50%, -50%) scale(0.3);
-        opacity: 0;
-    }
-    50% {
-        transform: translate(-50%, -50%) scale(1.05);
-        opacity: 1;
-    }
-    70% {
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
-    }
-}
-
-/* Responsividade para celulares e tablets */
-@media (max-width: 768px) {
-    .ui {
-        font-size: clamp(11px, 2.5vw, 14px);
-        gap: 8px;
-        padding: 8px;
-        width: 98%;
-        top: 3px;
-        justify-content: space-around;
-    }
-    .controls {
-        display: none;
-    }
-    .restart-btn, .next-btn {
-        padding: 8px 16px;
-        font-size: clamp(12px, 2.5vh, 16px);
-    }
-}
-
-/* --- ADICIONE AO SEU CSS --- */
-
-/* Força modo landscape em dispositivos mini */
-@media screen and (orientation: portrait) {
-    body::after {
-        content: "🔄 Por favor, vire o celular para HORIZONTAL (Landscape) para jogar!";
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.95);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        font-size: clamp(18px, 6vw, 32px);
-        text-align: center;
-        padding: 20px;
-        font-family: 'Comic Sans MS', cursive, sans-serif;
-        flex-direction: column;
-        gap: 20px;
-    }
-    #gameCanvas, .ui { display: none !important; }
-}
-
-/* Melhorias extras para landscape móvel com altura pequena */
-@media screen and (orientation: landscape) and (max-height: 400px) {
-    .ui {
-        font-size: clamp(9px, 2vh, 12px);
-        gap: 6px;
-        padding: 4px;
-        top: 2px;
-    }
-    .game-over, .level-complete {
-        font-size: clamp(18px, 5vh, 28px);
-        padding: 15px;
-    }
-    .restart-btn, .next-btn {
-        padding: 6px 12px;
-        font-size: clamp(11px, 2.5vh, 14px);
-    }
+    display: block;
+    image-rendering: pixelated; /* Often good for 2D pixel-ish games, optional */
 }

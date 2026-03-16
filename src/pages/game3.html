@@ -3,50 +3,195 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Voo do Filhote</title>
     <link rel="stylesheet" href="../style/game3.css">
     <link rel="shortcut icon" href="../assets/favicon.ico" type="image/x-icon">
-    <!-- Preload críticos para menos flicker (arquivos detectados em assets/) -->
-    <link rel="preload" href="../assets/player.png" as="image">
-    <link rel="preload" href="../assets/game3-assets/fundo.png" as="image">
-    <link rel="preload" href="../assets/game3-assets/tronco.png" as="image">
-    <link rel="preload" href="../assets/game3-assets/ventania.png" as="image">
-    <link rel="preload" href="../assets/game3-assets/buraco.png" as="image">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Serra Gaúcha Theme Colors (Earthier, warmer)
+                        primary: '#a67c52',     // Wood brown
+                        primaryLight: '#c29a70',
+                        secondary: '#4f7942',   // Forest green
+                        danger: '#b33939',      // Berry red
+                        darkbg: 'rgba(44, 34, 26, 0.85)', // Very dark warm brown
+                        panelbg: 'rgba(230, 219, 204, 0.95)', // Beige/parchment
+                        textMain: '#2c221a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    </style>
 </head>
 
-<body>
-    <!-- Assets: IDs = nome do PNG. Caminho: ./assets/ (mova os PNG para src/assets/) -->
-    <img id="player" src="../assets/player.png" style="display: none;" crossorigin>
-    <img id="tronco" src="../assets/game3-assets/tronco.png" style="display: none;" crossorigin>
-    <img id="ventania" src="../assets/game3-assets/ventania.png" style="display: none;" crossorigin>
-    <img id="buraco" src="../assets/game3-assets/buraco.png" style="display: none;" crossorigin>
-    <img id="fundo" src="../assets/game3-assets/fundo.png" style="display: none;" crossorigin>
+<!-- Added touch-none to prevent zooming/scrolling on mobile -->
 
-    <div class="ui">
-        <div>🚀 Distância: <span id="score">0</span>m</div>
-        <div>❤️ Vidas: <span id="lives">3</span></div>
-        <div>⭐ Nível: <span id="level">1</span></div>
-        <div>⚡ Velocidade: <span id="speed">1.0x</span></div>
-        <div>📝 Palavra: <span id="wordProgress">---</span></div>
+<body class="bg-gray-900 text-white overflow-hidden select-none m-0 p-0 fixed inset-0 font-sans touch-none">
+
+    <!-- Preloaded Assets (Hidden) -->
+    <div id="assets" class="hidden">
+        <img id="player-desktop" src="../assets/player.png" crossorigin="anonymous">
+        <img id="player-mobile" src="../assets/player.png" crossorigin="anonymous">
+        <img id="tronco" src="../assets/game3-assets/tronco.png" crossorigin="anonymous">
+        <img id="ventania" src="../assets/game3-assets/ventania.png" crossorigin="anonymous">
+        <img id="buraco" src="../assets/game3-assets/buraco.png" crossorigin="anonymous">
+        <img id="fundo" src="../assets/game3-assets/fundo.png" crossorigin="anonymous">
     </div>
 
-    
-    <div id="gameOver" class="game-over">
-        <div>😢 GAME OVER</div>
-        <div>🚀 Distância Final: <span id="finalScore">0</span>m</div>
-        <button class="restart-btn" onclick="restartGame()">🔄 Jogar Novamente</button>
+    <!-- Main Canvas -->
+    <canvas id="gameCanvas" class="block w-full h-full object-cover"></canvas>
+
+    <!-- Overlay UI Container -->
+    <div id="ui-container"
+        class="absolute inset-0 pointer-events-none flex flex-col justify-between p-2 sm:p-4 z-10 w-full h-full">
+
+        <!-- HUD: Compact and humanized for Serra Gaúcha -->
+        <div id="hud" class="hidden flex justify-between items-start w-full">
+
+            <!-- Left Side: Time & Lives -->
+            <div class="flex flex-col gap-1 pointer-events-auto">
+                <div
+                    class="bg-panelbg text-textMain rounded-lg px-2 py-1 shadow-md border border-primary/30 flex items-center gap-2">
+                    <span class="text-sm">⏱️</span>
+                    <span class="text-sm font-bold" id="timeElapsed">00:00</span>
+                </div>
+
+                <div class="flex gap-1">
+                    <div
+                        class="bg-panelbg text-textMain rounded-lg px-2 py-1 shadow border border-primary/30 flex items-center gap-1">
+                        <span class="text-xs">❤️</span>
+                        <span id="lives" class="font-bold text-danger text-sm">3</span>
+                    </div>
+                    <div
+                        class="bg-panelbg text-textMain rounded-lg px-2 py-1 shadow border border-primary/30 flex items-center gap-1">
+                        <span class="text-xs">⭐</span>
+                        <span id="level" class="font-bold text-secondary text-sm">1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Word Progress -->
+            <div
+                class="bg-panelbg text-textMain rounded-lg px-3 py-1 shadow-md border border-primary/30 pointer-events-auto max-w-[50%] sm:max-w-none text-right">
+                <div class="text-[10px] sm:text-xs text-primary font-semibold uppercase tracking-wider mb-0.5">Palavra
+                </div>
+                <div id="wordProgress"
+                    class="text-sm sm:text-xl font-bold tracking-widest text-secondary min-h-[1.5rem] break-all">
+                    ---
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Menu -->
+        <div id="main-menu"
+            class="absolute inset-0 flex flex-col items-center justify-center bg-darkbg backdrop-blur-sm pointer-events-auto z-50">
+            <h1 class="text-3xl sm:text-5xl font-extrabold text-panelbg mb-6 sm:mb-8 drop-shadow-md text-center px-4"
+                style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                Voo do Filhote
+            </h1>
+
+            <div
+                class="bg-panelbg text-textMain p-4 sm:p-6 rounded-2xl border-2 border-primary shadow-2xl flex flex-col gap-3 w-11/12 max-w-sm">
+                <div class="text-xs sm:text-sm text-textMain/80 mb-2 whitespace-pre-line text-center">
+                    Desvie dos obstáculos e colete as letras corretas para formar a palavra!
+
+                    <strong class="block mt-2">Controles:</strong>
+                    💻 Setas ou WASD
+                    📱 Toque e arraste
+                </div>
+
+                <button id="btn-start"
+                    class="w-full bg-secondary hover:bg-green-700 text-white font-bold py-2 sm:py-3 px-4 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg">
+                    ▶️ Jogar Agora
+                </button>
+
+                <a href="../pages/index.html"
+                    class="w-full bg-primary hover:bg-primaryLight text-white font-semibold py-2 sm:py-3 px-4 rounded-xl transition-all text-center">
+                    🔙 Voltar ao Início
+                </a>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="game-over"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-darkbg backdrop-blur-md pointer-events-auto z-50">
+            <div
+                class="bg-panelbg text-textMain p-6 sm:p-8 rounded-2xl border-2 border-danger shadow-2xl flex flex-col items-center gap-4 w-11/12 max-w-sm">
+                <div class="text-5xl sm:text-6xl mb-1">🍂</div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-danger text-center">Fim de Jogo</h2>
+                <div class="flex flex-col items-center gap-2 w-full mt-2">
+                    <div class="bg-darkbg/10 rounded-lg p-2 w-full text-center">
+                        <span class="text-textMain/60 text-xs sm:text-sm uppercase font-semibold block">Tempo
+                            Decorrido</span>
+                        <span class="text-2xl sm:text-3xl font-black text-primary" id="finalTime">00:00</span>
+                    </div>
+                    <div class="bg-darkbg/10 rounded-lg p-2 w-full text-center">
+                        <span class="text-textMain/60 text-xs sm:text-sm uppercase font-semibold block">Nível
+                            Máximo</span>
+                        <span class="text-2xl sm:text-3xl font-black text-secondary" id="finalLevel">1</span>
+                    </div>
+                </div>
+
+                <button id="btn-restart"
+                    class="w-full bg-danger hover:bg-red-700 text-white font-bold py-3 mt-2 px-6 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                    </svg>
+                    Tentar Novamente
+                </button>
+                <a href="../pages/index.html"
+                    class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-xl transition-all text-center mt-1">
+                    🚪 Sair
+                </a>
+            </div>
+        </div>
+
+        <!-- Level Complete Modal -->
+        <div id="level-complete"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-darkbg backdrop-blur-md pointer-events-auto z-50">
+            <div
+                class="bg-panelbg text-textMain p-6 sm:p-8 rounded-2xl border-2 border-secondary shadow-2xl flex flex-col items-center gap-4 w-11/12 max-w-sm">
+                <div class="text-5xl sm:text-6xl mb-1">🌻</div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-secondary text-center">Nível <span
+                        id="completedLevel">1</span> Concluído!</h2>
+
+                <p class="text-sm text-center text-textMain/70 font-medium">Palavra completa!</p>
+                <div class="text-2xl font-bold tracking-widest text-primary mb-2" id="completedWordDisplay"></div>
+
+                <div class="flex flex-col gap-2 w-full">
+                    <button id="btn-next-level"
+                        class="w-full bg-secondary hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg">
+                        🚀 Próximo Nível
+                    </button>
+                    <button id="btn-restart-from-win"
+                        class="w-full bg-primary hover:bg-primaryLight text-white font-semibold py-2 px-6 rounded-xl transition-all mt-1">
+                        🔄 Reiniciar Jogo
+                    </button>
+                    <a href="../pages/index.html"
+                        class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-xl transition-all text-center mt-1">
+                        🚪 Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <div id="levelComplete" class="level-complete">
-        <div>🎉 NÍVEL <span id="completedLevel">1</span> CONCLUÍDO!</div>
-        <div>🚀 Próximo: <span id="nextTarget">200</span>m</div>
-        <button class="next-btn" id="nextLevelBtn" onclick="nextLevel()">➡️ Próximo Nível</button>
-        <button class="restart-btn" onclick="restartGame()">🔄 Reiniciar</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <script src="../scripts/game3.js" defer></script>
+    <!-- Scripts -->
+    <script type="module" src="../scripts/game3.js"></script>
 </body>
+
 </html>

@@ -1,472 +1,726 @@
-(function () {
-    'use strict';
+// ==========================================
+// 1. CONFIGURATION
+// ==========================================
+const CONFIG = {
+    PLAYER: {
+        BASE_WIDTH: 100,
+        BASE_HEIGHT: 100,
+        SPEED_DESKTOP: 400, // pixels per second
+        SPEED_MOBILE: 5, // drag multiplier
+        INVULNERABLE_DURATION: 1.5, // seconds
+    },
+    OBSTACLES: {
+        BASE_SPEED: 250, // pixels per second
+        SPAWN_RATE_MIN: 0.8, // seconds
+        SPAWN_RATE_MAX: 2.5, // seconds
+        TYPES: [
+            { type: 'normal', chance: 0.6, width: 80, height: 80 },
+            { type: 'fast', chance: 0.25, width: 70, height: 70, speedMult: 1.5 },
+            { type: 'kamikaze', chance: 0.1, width: 60, height: 60, speedMult: 1.2 },
+            { type: 'boss', chance: 0.05, width: 120, height: 120, hp: 2 }
+        ]
+    },
+    LETTERS: {
+        BASE_SPEED: 150, // slower than obstacles
+        SPAWN_RATE_MIN: 2.0,
+        SPAWN_RATE_MAX: 4.0,
+        SIZE: 40
+    },
+    GAME: {
+        METERS_UNIT: 100, // pixels = 1 meter
+        STARTING_LIVES: 3,
+        PARALLAX_SPEED: 100,
+    }
+};
 
-    // 1. CONFIGURAÇÕES CONSTANTES
-    const CONFIG = {
-        METERS_PER_FRAME: 95,
-        SPAWN_DISTANCE_MIN: 8,
-        OBSTACLE_MAX: 10,
-        OBSTACLE_SPAWN_BASE: 90,
-        OBSTACLE_SPAWN_MIN: 50,
-        LETTER_OFFSCREEN: 150,
-        ENEMY_OFFSCREEN: 200,
-        PARTICLE_COUNT: 25,
-        STAR_COUNT: 250
-    };
-
-    const ENEMY_TYPES = [
-        { type: 'boss', chance: 0.04, width: 160, height: 120, hp: 4 },
-        { type: 'kamikaze', chance: 0.13, width: 70, height: 70, hp: 1 },
-        { type: 'fast', chance: 0.42, width: 80, height: 100, hp: 1 },
-        { type: 'normal', chance: 1, width: 100, height: 100, hp: 1 }
-    ];
-
-    // 2. CACHE DE DOM E ASSETS
-    const DOM = {
-        canvas: document.getElementById('gameCanvas'),
-        ctx: document.getElementById('gameCanvas').getContext('2d'),
-        score: document.getElementById('score'),
-        lives: document.getElementById('lives'),
-        level: document.getElementById('level'),
-        speed: document.getElementById('speed'),
-        gameOver: document.getElementById('gameOver'),
-        levelComplete: document.getElementById('levelComplete'),
-        finalScore: document.getElementById('finalScore'),
-        completedLevel: document.getElementById('completedLevel'),
-        nextTarget: document.getElementById('nextTarget'),
-        wordProgress: document.getElementById('wordProgress')
-    };
-
-    const SPRITES = {
-        player: document.getElementById('player'),
+const ASSETS = {
+    images: {
+        playerDesktop: document.getElementById('player-desktop'),
+        playerMobile: document.getElementById('player-mobile'),
         tronco: document.getElementById('tronco'),
         ventania: document.getElementById('ventania'),
         buraco: document.getElementById('buraco'),
-        fundo: document.getElementById('fundo')
-    };
-
-    const TYPE_TO_SPRITE = { normal: 'tronco', fast: 'ventania', boss: 'buraco', kamikaze: 'ventania' };
-
-    // 3. ESTADO DO JOGO E VARIÁVEIS GLOBAIS
-    const State = {
-        totalDistance: 0,
-        currentTarget: 100,
-        lives: 3,
-        level: 1,
-        gameOver: false,
-        levelComplete: false,
-        enemySpawnTimer: 0,
-        gameSpeed: 1.0,
-        lastEnemySpawnDistance: -500,
-        currentWord: '',
-        lettersCollected: 0,
-        missedLetter: false,
-        dictionary: ['NAVE', 'FOGO', 'ESTAR', 'JOGO', 'VIDA', 'FASE', 'NIVEL'] // Fallback
-    };
-
-    const Env = {
-        width: 0, height: 0,
-        cameraX: 0, lastTime: 0, frameCounter: 0,
-        isMobile: null, mobileScale: 1,
-        imagesLoaded: 0, totalImages: 0
-    };
-
-    const Input = {
-        keys: {},
-        touch: { active: false, x: 0, y: 0 }
-    };
-
-    const Player = { x: 50, y: 0, width: 150, height: 150, speed: 2.8, invulnerable: 0 };
-
-    // 4. ENTIDADES E OBJECT POOLING (Otimização de Memória)
-    const Entities = {
-        enemies: [], particles: [], stars: [], letters: []
-    };
-    
-    const Pools = {
-        enemies: [], particles: [], letters: []
-    };
-
-    // 5. FUNÇÕES UTILITÁRIAS
-    const Utils = {
-        hitTest(ax, ay, aw, ah, bx, by, bw, bh) {
-            return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-        },
-        toScreenX(worldX) {
-            return Env.width - (worldX - Env.cameraX);
-        },
-        pickRandomWord() {
-            return State.dictionary[Math.floor(Math.random() * State.dictionary.length)];
+        fundo: document.getElementById('fundo'),
+    },
+    getObstacleImage(type) {
+        switch (type) {
+            case 'normal': return this.images.tronco;
+            case 'fast': return this.images.ventania;
+            case 'kamikaze': return this.images.ventania;
+            case 'boss': return this.images.buraco;
+            default: return this.images.tronco;
         }
-    };
+    }
+};
 
-    // 6. GERENCIAMENTO DE TELA E ASSETS
-    async function loadDictionary() {
+// ==========================================
+// 2. ENGINE & INPUT
+// ==========================================
+class Engine {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.width = 0;
+        this.height = 0;
+        this.isMobile = false;
+
+        this.lastTime = 0;
+        this.isRunning = false;
+
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        // Adjusted mobile detection to treat anything below 768px as mobile logic
+        this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || this.width < 768;
+    }
+
+    start(updateFn, drawFn) {
+        this.updateFn = updateFn;
+        this.drawFn = drawFn;
+        this.isRunning = true;
+        this.lastTime = performance.now();
+        requestAnimationFrame((time) => this.loop(time));
+    }
+
+    stop() {
+        this.isRunning = false;
+    }
+
+    loop(currentTime) {
+        if (!this.isRunning) return;
+
+        let dt = (currentTime - this.lastTime) / 1000;
+        this.lastTime = currentTime;
+
+        // Cap dt to prevent huge jumps if tab was inactive
+        if (dt > 0.1) dt = 0.1;
+
+        if (this.updateFn) this.updateFn(dt);
+        if (this.drawFn) this.drawFn(this.ctx);
+
+        requestAnimationFrame((time) => this.loop(time));
+    }
+}
+
+class InputManager {
+    constructor(canvas, isMobile) {
+        this.keys = {};
+        this.touch = { active: false, x: 0, y: 0 };
+        this.isMobile = isMobile;
+
+        window.addEventListener('keydown', e => this.keys[e.code] = true);
+        window.addEventListener('keyup', e => this.keys[e.code] = false);
+
+        canvas.addEventListener('touchstart', e => {
+            this.touch.active = true;
+            this.touch.x = e.touches[0].clientX;
+            this.touch.y = e.touches[0].clientY;
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', e => {
+            // Prevent default zooming/scrolling on mobile
+            e.preventDefault();
+            this.touch.x = e.touches[0].clientX;
+            this.touch.y = e.touches[0].clientY;
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            this.touch.active = false;
+        });
+    }
+
+    updateMobileState(isMobile) {
+        this.isMobile = isMobile;
+    }
+}
+
+// ==========================================
+// 3. ENTITIES (Player, Obstacles, Letters)
+// ==========================================
+class Player {
+    constructor(engine) {
+        this.engine = engine;
+        this.facingRight = true; // Faces right by default (from left to right)
+        this.reset();
+    }
+
+    reset() {
+        this.width = CONFIG.PLAYER.BASE_WIDTH * (this.engine.isMobile ? 0.6 : 1);
+        this.height = CONFIG.PLAYER.BASE_HEIGHT * (this.engine.isMobile ? 0.6 : 1);
+        this.x = this.engine.width - 50 - this.width;
+        this.y = this.engine.height / 2 - this.height / 2;
+        this.invulnerableTime = CONFIG.PLAYER.INVULNERABLE_DURATION;
+        this.facingRight = false;
+    }
+
+    update(dt, input) {
+        if (this.invulnerableTime > 0) {
+            this.invulnerableTime -= dt;
+        }
+
+        this.width = CONFIG.PLAYER.BASE_WIDTH * (this.engine.isMobile ? 0.6 : 1);
+        this.height = CONFIG.PLAYER.BASE_HEIGHT * (this.engine.isMobile ? 0.6 : 1);
+
+        const speed = CONFIG.PLAYER.SPEED_DESKTOP * dt;
+
+        let movedLeft = false;
+        let movedRight = false;
+
+        if (input.keys['ArrowUp'] || input.keys['KeyW']) this.y -= speed;
+        if (input.keys['ArrowDown'] || input.keys['KeyS']) this.y += speed;
+        if (input.keys['ArrowLeft'] || input.keys['KeyA']) { this.x -= speed; movedLeft = true; }
+        if (input.keys['ArrowRight'] || input.keys['KeyD']) { this.x += speed; movedRight = true; }
+
+        if (input.touch.active) {
+            const dx = input.touch.x - (this.x + this.width / 2);
+            const dy = input.touch.y - (this.y + this.height / 2);
+
+            // Apply smooth linear interpolation to follow the finger to remove the jitter/flick
+            this.x += dx * 5 * dt;
+            this.y += dy * 5 * dt;
+
+            if (dx < -5) movedLeft = true;
+            if (dx > 5) movedRight = true;
+        }
+
+        // Logic for flipping scale based on movement direction
+        if (movedRight) this.facingRight = true;
+        else if (movedLeft) this.facingRight = false;
+
+        // Clamp to screen
+        this.x = Math.max(0, Math.min(this.engine.width - this.width, this.x));
+        this.y = Math.max(0, Math.min(this.engine.height - this.height, this.y));
+    }
+
+    draw(ctx) {
+        const isBlinking = this.invulnerableTime > 0 && Math.floor(this.invulnerableTime * 10) % 2 === 0;
+        if (isBlinking) return;
+
+        const img = this.engine.isMobile ? ASSETS.images.playerMobile : ASSETS.images.playerDesktop;
+
+        ctx.save();
+
+        // Translate to the player's position
+        // If facingRight is true, flip horizontally since the original asset might be facing left
+        // Wait, "jogador deve andar para a esquerda e virar (scaleX(-1)) quando for para o outro lado"
+        // Let's assume asset faces left by default. If it faces right by default, we just flip the logic.
+        // We'll translate to center, scale conditionally, then draw.
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+        ctx.translate(centerX, centerY);
+
+        // Adjust facing scale properly (since native asset faces right, scale(1) is right)
+        ctx.scale(this.facingRight ? 1 : -1, 1);
+
+        if (img && img.complete) {
+            ctx.drawImage(img, -this.width / 2, -this.height / 2, this.width, this.height);
+        } else {
+            ctx.fillStyle = '#4f7942';
+            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        }
+        ctx.restore();
+    }
+}
+
+class EntityManager {
+    constructor(engine) {
+        this.engine = engine;
+
+        this.obstacles = [];
+        this.letters = [];
+        this.particles = [];
+        this.stars = [];
+
+        this.obstacleTimer = 0;
+        this.letterTimer = 0;
+
+        this.pools = {
+            obstacles: [],
+            letters: [],
+            particles: []
+        };
+
+        this.initStars();
+    }
+
+    initStars() {
+        this.stars = Array.from({ length: 80 }, () => ({
+            x: Math.random() * this.engine.width * 2,
+            y: Math.random() * this.engine.height,
+            size: Math.random() * 2 + 1,
+            speed: Math.random() * 0.4 + 0.1,
+            alpha: Math.random() * 0.4 + 0.2
+        }));
+    }
+
+    reset() {
+        this.pools.obstacles.push(...this.obstacles.splice(0, this.obstacles.length));
+        this.pools.letters.push(...this.letters.splice(0, this.letters.length));
+        this.pools.particles.push(...this.particles.splice(0, this.particles.length));
+
+        this.obstacleTimer = 0;
+        this.letterTimer = 0;
+    }
+
+    spawnObstacle(gameSpeedMult) {
+        const types = CONFIG.OBSTACLES.TYPES;
+        let def = types[types.length - 1];
+        const r = Math.random();
+        let cumulative = 0;
+        for (let t of types) {
+            cumulative += t.chance;
+            if (r <= cumulative) {
+                def = t;
+                break;
+            }
+        }
+
+        const scale = this.engine.isMobile ? 0.6 : 1;
+        const w = def.width * scale;
+        const h = def.height * scale;
+
+        let y = 0;
+        let attempts = 0;
+        do {
+            y = 50 + Math.random() * (this.engine.height - h - 100);
+            attempts++;
+        } while (attempts < 10 && this.obstacles.some(o => this.hitTest(this.engine.width, y, w, h, o.x, o.y, o.width, o.height)));
+
+        let obs = this.pools.obstacles.pop() || {};
+        obs.x = -100 - w;
+        obs.y = y;
+        obs.width = w;
+        obs.height = h;
+        obs.type = def.type;
+        obs.speedX = CONFIG.OBSTACLES.BASE_SPEED * (def.speedMult || 1) * gameSpeedMult;
+        obs.hp = def.hp || 1;
+        obs.sinOffset = Math.random() * Math.PI * 2;
+
+        this.obstacles.push(obs);
+    }
+
+    spawnLetter(targetChar, gameSpeedMult) {
+        const scale = this.engine.isMobile ? 0.6 : 1;
+        let l = this.pools.letters.pop() || {};
+        l.x = -100 - (CONFIG.LETTERS.SIZE * scale); // Changed logic to rely on the size correctly before applying l.width
+        l.y = 50 + Math.random() * (this.engine.height - 100);
+        l.width = CONFIG.LETTERS.SIZE * scale;
+        l.height = CONFIG.LETTERS.SIZE * scale;
+        l.char = targetChar;
+        l.speedX = CONFIG.LETTERS.BASE_SPEED * gameSpeedMult;
+        l.pulse = Math.random() * Math.PI * 2;
+
+        this.letters.push(l);
+    }
+
+    createExplosion(x, y, color) {
+        for (let i = 0; i < 15; i++) {
+            let p = this.pools.particles.pop() || {};
+            p.x = x;
+            p.y = y;
+            p.vx = (Math.random() - 0.5) * 300;
+            p.vy = (Math.random() - 0.5) * 300;
+            p.life = 0.4 + Math.random() * 0.4;
+            p.maxLife = p.life;
+            p.color = color;
+            p.size = Math.random() * 4 + 2;
+            this.particles.push(p);
+        }
+    }
+
+    update(dt, gameSpeedMult, currentTargetChar) {
+        // Obstacles
+        this.obstacleTimer += dt * gameSpeedMult;
+        const spawnRate = Math.max(
+            CONFIG.OBSTACLES.SPAWN_RATE_MIN,
+            CONFIG.OBSTACLES.SPAWN_RATE_MAX - (gameSpeedMult - 1)
+        );
+        if (this.obstacleTimer >= spawnRate) {
+            this.spawnObstacle(gameSpeedMult);
+            this.obstacleTimer = 0;
+        }
+
+        // Letters
+        if (currentTargetChar) {
+            this.letterTimer += dt;
+            if (this.letters.length === 0 && this.letterTimer > 1.5) {
+                this.spawnLetter(currentTargetChar, gameSpeedMult);
+                this.letterTimer = 0;
+            }
+        }
+
+        // Move
+        for (let i = this.obstacles.length - 1; i >= 0; i--) {
+            let o = this.obstacles[i];
+            o.x += o.speedX * dt;
+            if (o.type === 'kamikaze') {
+                o.y += Math.sin(o.x * 0.05 + o.sinOffset) * 100 * dt;
+            }
+
+            if (o.x > this.engine.width + 100) {
+                this.pools.obstacles.push(this.obstacles.splice(i, 1)[0]);
+            }
+        }
+
+        for (let i = this.letters.length - 1; i >= 0; i--) {
+            let l = this.letters[i];
+            l.x += l.speedX * dt;
+            l.pulse += 5 * dt;
+
+            if (l.x > this.engine.width + 100) {
+                this.pools.letters.push(this.letters.splice(i, 1)[0]);
+            }
+        }
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            let p = this.particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            if (p.life <= 0) {
+                this.pools.particles.push(this.particles.splice(i, 1)[0]);
+            }
+        }
+
+        // Parallax BG
+        this.stars.forEach(s => {
+            s.x += s.speed * CONFIG.GAME.PARALLAX_SPEED * gameSpeedMult * dt;
+            if (s.x > this.engine.width + 100) {
+                s.x = -Math.random() * 100;
+                s.y = Math.random() * this.engine.height;
+            }
+        });
+    }
+
+    draw(ctx) {
+        // Draw Stars
+        ctx.fillStyle = '#ffffff';
+        this.stars.forEach(s => {
+            ctx.globalAlpha = s.alpha;
+            ctx.fillRect(s.x, s.y, s.size, s.size);
+        });
+        ctx.globalAlpha = 1.0;
+
+        // Draw Letters
+        this.letters.forEach(l => {
+            ctx.fillStyle = `rgba(166, 124, 82, ${0.7 + Math.sin(l.pulse) * 0.3})`; // primary color (brown)
+            ctx.beginPath();
+            ctx.roundRect(l.x, l.y, l.width, l.height, 8);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.floor(l.width * 0.6)}px Inter, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(l.char, l.x + l.width / 2, l.y + l.height / 2);
+        });
+
+        // Draw Obstacles
+        this.obstacles.forEach(o => {
+            const img = ASSETS.getObstacleImage(o.type);
+            if (img && img.complete) {
+                ctx.drawImage(img, o.x, o.y, o.width, o.height);
+            } else {
+                ctx.fillStyle = '#b33939'; // danger color
+                ctx.fillRect(o.x, o.y, o.width, o.height);
+            }
+        });
+
+        // Draw Particles
+        this.particles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
+    hitTest(ax, ay, aw, ah, bx, by, bw, bh) {
+        return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+    }
+}
+
+// ==========================================
+// 4. MAIN GAME MANAGER
+// ==========================================
+class Game {
+    constructor() {
+        this.engine = new Engine();
+        this.input = new InputManager(this.engine.canvas, this.engine.isMobile);
+        this.player = new Player(this.engine);
+        this.entities = new EntityManager(this.engine);
+
+        this.state = {
+            status: 'menu',
+            timeElapsed: 0,
+            maxLevelReached: 1,
+            scrollX: 0,
+            lives: CONFIG.GAME.STARTING_LIVES,
+            level: 1,
+            gameSpeedMult: 1.0,
+            currentWord: '',
+            lettersCollected: 0
+        };
+
+        this.dictionary = ['CHIMARRAO', 'PAMPA', 'GAUCHO', 'MATE', 'FLOR', 'SERRA'];
+
+        this.ui = {
+            menu: document.getElementById('main-menu'),
+            hud: document.getElementById('hud'),
+            gameOver: document.getElementById('game-over'),
+            levelComplete: document.getElementById('level-complete'),
+
+            score: null, // Removed
+            timeElapsed: document.getElementById('timeElapsed'),
+            lives: document.getElementById('lives'),
+            level: document.getElementById('level'),
+            wordProgress: document.getElementById('wordProgress'),
+
+            finalTime: document.getElementById('finalTime'),
+            finalLevel: document.getElementById('finalLevel'),
+
+            completedLevel: document.getElementById('completedLevel'),
+            completedWordDisplay: document.getElementById('completedWordDisplay')
+        };
+
+        this.bindEvents();
+        this.loadDictionary();
+
+        this.engine.start((dt) => this.update(dt), (ctx) => this.draw(ctx));
+    }
+
+    async loadDictionary() {
         try {
             const res = await fetch('../assets/dicionario.txt');
             if (res.ok) {
                 const text = await res.text();
                 const words = text.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length > 0);
-                if (words.length > 0) State.dictionary = words;
+                if (words.length > 0) Object.assign(this.dictionary, words);
             }
         } catch (e) {
             console.warn('Usando dicionário fallback.', e);
         }
     }
 
-    function resizeCanvas() {
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
-        Env.width = window.innerWidth;
-        Env.height = window.innerHeight;
-        DOM.canvas.width = Math.round(Env.width * dpr);
-        DOM.canvas.height = Math.round(Env.height * dpr);
-        DOM.canvas.style.width = `${Env.width}px`;
-        DOM.canvas.style.height = `${Env.height}px`;
-        DOM.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pickWordForLevel() {
+        // Levels 1-2: words up to 5 chars
+        // Levels 3-4: words up to 7 chars
+        // Level 5+: any words
 
-        const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        if (mobile !== Env.isMobile) {
-            Env.isMobile = mobile;
-            if (SPRITES.player) SPRITES.player.src = Env.isMobile ? '../assets/player-mobile.png' : '../assets/player.png';
-            
-            // Atualiza UI labels baseados no device
-            const labels = [
-                { el: DOM.score, m: '📱 Dist.: ', d: '🚀 Distância: ' },
-                { el: DOM.lives, m: '💖 Vidas: ', d: '❤️ Vidas: ' },
-                { el: DOM.level, m: '🌟 Nível: ', d: '⭐ Nível: ' },
-                { el: DOM.speed, m: '💨 Vel.: ', d: '⚡ Velocidade: ' },
-                { el: DOM.wordProgress, m: '🔤 Pal.: ', d: '📝 Palavra: ' }
-            ];
-            labels.forEach(({el, m, d}) => { if (el && el.previousSibling) el.previousSibling.textContent = Env.isMobile ? m : d; });
+        let pool = this.dictionary;
+
+        if (this.state.level <= 2) {
+            pool = this.dictionary.filter(w => w.length <= 5);
+        } else if (this.state.level <= 4) {
+            pool = this.dictionary.filter(w => w.length <= 7 && w.length > 4);
+        } else {
+            pool = this.dictionary.filter(w => w.length >= 6);
         }
 
-        Env.mobileScale = Env.isMobile ? 0.5 : 1.0;
-        Player.width = 150 * Env.mobileScale;
-        Player.height = 150 * Env.mobileScale;
-        Entities.letters.forEach(l => { l.width = l.height = 40 * Env.mobileScale; });
+        if (pool.length === 0) pool = this.dictionary; // fallback
+
+        return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    // 7. LÓGICA DE SPAWN E ENTIDADES
-    function spawnLetter() {
-        if (!State.currentWord || State.lettersCollected >= State.currentWord.length) return;
-        let l = Pools.letters.pop() || {};
-        l.x = Env.cameraX + Env.width + 350 + Math.random() * 100;
-        l.y = 70 + Math.random() * (Env.height - 140);
-        l.letter = State.currentWord[State.lettersCollected];
-        l.width = l.height = 40 * Env.mobileScale;
-        l.pulse = Math.random() * Math.PI * 2;
-        l.offscreen = false;
-        Entities.letters.push(l);
-    }
+    bindEvents() {
+        document.getElementById('btn-start').addEventListener('click', () => this.startGame(true));
+        document.getElementById('btn-restart').addEventListener('click', () => this.startGame(true));
+        document.getElementById('btn-restart-from-win').addEventListener('click', () => this.startGame(true));
+        document.getElementById('btn-next-level').addEventListener('click', () => this.nextLevel());
 
-    function spawnEnemy() {
-        if (State.totalDistance - State.lastEnemySpawnDistance < CONFIG.SPAWN_DISTANCE_MIN) return;
-        if (Entities.enemies.length >= CONFIG.OBSTACLE_MAX) return;
-
-        const def = ENEMY_TYPES.find(d => Math.random() < d.chance) || ENEMY_TYPES[ENEMY_TYPES.length - 1];
-        const w = def.width * Env.mobileScale, h = def.height * Env.mobileScale;
-        let y, attempts = 0;
-
-        do {
-            y = 60 + Math.random() * (Env.height - h - 120);
-        } while (++attempts <= 10 && Entities.enemies.some(e => Utils.hitTest(0, e.y, 1, e.height, 0, y, 1, h)));
-
-        let enemy = Pools.enemies.pop() || {};
-        Object.assign(enemy, {
-            x: State.totalDistance * 10 + Env.width + 400 + Math.random() * 400,
-            y, width: w, height: h, hp: def.hp, type: def.type
+        window.addEventListener('resize', () => {
+            this.input.updateMobileState(this.engine.isMobile);
         });
-        Entities.enemies.push(enemy);
-        State.lastEnemySpawnDistance = State.totalDistance;
     }
 
-    function createExplosion(x, y, color = '#ffaa00') {
-        for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
-            let p = Pools.particles.pop() || {};
-            Object.assign(p, {
-                x, y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12,
-                life: 40, maxLife: 40, color, size: Math.random() * 4 + 2
-            });
-            Entities.particles.push(p);
+    startGame(fullReset = false) {
+        if (fullReset) {
+            this.state.level = 1;
+            this.state.timeElapsed = 0;
+            this.state.maxLevelReached = 1;
+            this.state.scrollX = 0;
+            this.state.gameSpeedMult = 1.0;
         }
+
+        this.state.lives = CONFIG.GAME.STARTING_LIVES;
+        this.state.currentWord = this.pickWordForLevel();
+        this.state.lettersCollected = 0;
+
+        this.player.reset();
+        this.entities.reset();
+
+        this.ui.menu.classList.add('hidden');
+        this.ui.gameOver.classList.add('hidden');
+        this.ui.levelComplete.classList.add('hidden');
+        this.ui.hud.classList.remove('hidden');
+        this.ui.hud.classList.add('flex'); // Because JS frameworks sometimes mess with layout
+
+        this.updateHUD();
+        this.state.status = 'playing';
     }
 
-    // 8. ATUALIZAÇÃO DE LÓGICA (UPDATE)
-    function update(dt) {
-        if (State.gameOver || State.levelComplete) return;
-
-        // Movimento do Player
-        if (Player.invulnerable > 0) Player.invulnerable -= dt;
-        const speed = Player.speed * dt * 0.4;
-
-        if (Input.keys['ArrowUp'] || Input.keys['KeyW']) Player.y -= speed;
-        if (Input.keys['ArrowDown'] || Input.keys['KeyS']) Player.y += speed;
-        if (Input.keys['ArrowLeft'] || Input.keys['KeyA']) Player.x -= speed;
-        if (Input.keys['ArrowRight'] || Input.keys['KeyD']) Player.x += speed;
-
-        if (Input.touch.active) {
-            const dx = Input.touch.x - (Player.x + Player.width / 2);
-            const dy = Input.touch.y - (Player.y + Player.height / 2);
-            const dist = Math.hypot(dx, dy);
-            if (dist > 25) {
-                Player.x += (dx / dist) * speed * 0.9;
-                Player.y += (dy / dist) * speed * 0.9;
-            }
-        }
-        
-        // Clamp do Player na tela
-        Player.x = Math.max(0, Math.min(Env.width - Player.width, Player.x));
-        Player.y = Math.max(0, Math.min(Env.height - Player.height, Player.y));
-
-        // Scroll e Progresso
-        Env.frameCounter += dt;
-        if (Env.frameCounter >= CONFIG.METERS_PER_FRAME) {
-            State.totalDistance += 1;
-            Env.frameCounter = 0;
-        }
-        Env.cameraX = State.totalDistance * 10;
-
-        if (State.totalDistance >= State.currentTarget && State.lettersCollected >= State.currentWord.length) {
-            State.levelComplete = true;
-            DOM.completedLevel.textContent = State.level;
-            DOM.nextTarget.textContent = State.currentTarget + 100;
-            DOM.levelComplete.style.display = 'block';
-        }
-
-        // Atualização de Entidades (Usando loop reverso para pooling correto)
-        State.enemySpawnTimer += dt * State.gameSpeed * 0.8;
-        if (State.enemySpawnTimer >= Math.max(CONFIG.OBSTACLE_SPAWN_MIN, CONFIG.OBSTACLE_SPAWN_BASE - (State.level * 2))) {
-            spawnEnemy();
-            State.enemySpawnTimer = 0;
-        }
-
-        for (let i = Entities.enemies.length - 1; i >= 0; i--) {
-            let e = Entities.enemies[i];
-            e.x -= (1.5 * State.gameSpeed * dt * 0.16);
-            if (e.type === 'kamikaze') e.y += Math.sin(e.x * 0.05) * 2;
-
-            if (e.x < Env.cameraX - CONFIG.ENEMY_OFFSCREEN) {
-                Pools.enemies.push(Entities.enemies.splice(i, 1)[0]);
-            }
-        }
-
-        for (let i = Entities.letters.length - 1; i >= 0; i--) {
-            let l = Entities.letters[i];
-            l.x -= (1.5 * State.gameSpeed * dt * 0.16);
-            
-            if (Utils.toScreenX(l.x) < -l.width && !l.offscreen) {
-                l.offscreen = true;
-                State.missedLetter = true;
-                Pools.letters.push(Entities.letters.splice(i, 1)[0]);
-            }
-        }
-
-        for (let i = Entities.particles.length - 1; i >= 0; i--) {
-            let p = Entities.particles[i];
-            p.x += p.vx; p.y += p.vy;
-            p.life -= dt;
-            p.size *= 0.96;
-            if (p.life <= 0) {
-                Pools.particles.push(Entities.particles.splice(i, 1)[0]);
-            }
-        }
-
-        Entities.stars.forEach(s => {
-            s.x -= s.speed * State.gameSpeed * dt * 0.2;
-            if (s.x < Env.cameraX - 100) s.x = Env.cameraX + Env.width + 1000;
-        });
-
-        checkCollisions();
-
-        if (Entities.letters.length === 0 && !State.missedLetter && State.lettersCollected < State.currentWord.length) {
-            spawnLetter();
-        }
-
-        updateUI();
+    nextLevel() {
+        this.state.level++;
+        if (this.state.level > this.state.maxLevelReached) this.state.maxLevelReached = this.state.level;
+        // Increase speed for difficulty
+        this.state.gameSpeedMult = Math.min(3.0, 1.0 + (this.state.level - 1) * 0.25);
+        this.startGame(false);
     }
 
-    function checkCollisions() {
-        const pX = Player.x + Player.width * 0.2, pY = Player.y + Player.height * 0.2;
-        const pW = Player.width * 0.6, pH = Player.height * 0.6;
+    endGame() {
+        this.state.status = 'gameover';
+        this.ui.finalTime.textContent = this.formatTime(this.state.timeElapsed);
+        this.ui.finalLevel.textContent = this.state.maxLevelReached;
+        this.ui.hud.classList.add('hidden');
+        this.ui.hud.classList.remove('flex');
+        this.ui.gameOver.classList.remove('hidden');
+    }
 
-        if (Player.invulnerable <= 0) {
-            for (let i = Entities.enemies.length - 1; i >= 0; i--) {
-                let e = Entities.enemies[i];
-                let sx = Utils.toScreenX(e.x);
-                if (Utils.hitTest(pX, pY, pW, pH, sx + e.width*0.1, e.y + e.height*0.1, e.width*0.8, e.height*0.8)) {
-                    State.lives--;
-                    Player.invulnerable = 150;
-                    createExplosion(Player.x + Player.width/2, Player.y + Player.height/2, '#ff4444');
-                    Pools.enemies.push(Entities.enemies.splice(i, 1)[0]);
-                    
-                    if (State.lives <= 0) {
-                        State.gameOver = true;
-                        DOM.finalScore.textContent = Math.floor(State.totalDistance);
-                        DOM.gameOver.style.display = 'block';
+    winLevel() {
+        this.state.status = 'levelcomplete';
+        this.ui.completedLevel.textContent = this.state.level;
+        this.ui.completedWordDisplay.textContent = this.state.currentWord;
+        // score assignment removed
+
+        this.ui.hud.classList.add('hidden');
+        this.ui.hud.classList.remove('flex');
+        this.ui.levelComplete.classList.remove('hidden');
+    }
+
+    updateWordProgress() {
+        const word = this.state.currentWord;
+        // e.g. "C H I _ _ _"
+        const progress = word.split('').map((c, i) => i < this.state.lettersCollected ? c : '_').join(' ');
+        this.ui.wordProgress.textContent = progress;
+    }
+
+    formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    updateHUD() {
+        this.ui.timeElapsed.textContent = this.formatTime(this.state.timeElapsed);
+        this.ui.lives.textContent = this.state.lives;
+        this.ui.level.textContent = this.state.level;
+        this.updateWordProgress();
+    }
+
+    checkCollisions() {
+        const hitMarginX = this.player.width * 0.2;
+        const hitMarginY = this.player.height * 0.2;
+        const pX = this.player.x + hitMarginX;
+        const pY = this.player.y + hitMarginY;
+        const pW = this.player.width - hitMarginX * 2;
+        const pH = this.player.height - hitMarginY * 2;
+
+        if (this.player.invulnerableTime <= 0) {
+            for (let i = this.entities.obstacles.length - 1; i >= 0; i--) {
+                let o = this.entities.obstacles[i];
+                if (this.entities.hitTest(pX, pY, pW, pH, o.x + o.width * 0.2, o.y + o.height * 0.2, o.width * 0.6, o.height * 0.6)) {
+                    this.state.lives--;
+                    this.player.invulnerableTime = CONFIG.PLAYER.INVULNERABLE_DURATION;
+                    // Explosion color = berry red (danger)
+                    this.entities.createExplosion(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2, '#b33939');
+
+                    this.entities.pools.obstacles.push(this.entities.obstacles.splice(i, 1)[0]);
+
+                    this.updateHUD();
+                    if (this.state.lives <= 0) {
+                        this.endGame();
+                        return;
                     }
                     break;
                 }
             }
         }
 
-        for (let i = Entities.letters.length - 1; i >= 0; i--) {
-            let l = Entities.letters[i];
-            let sx = Utils.toScreenX(l.x);
-            if (Utils.hitTest(pX, pY, pW, pH, sx, l.y, l.width, l.height)) {
-                if (l.letter === State.currentWord[State.lettersCollected]) {
-                    State.lettersCollected++;
-                    createExplosion(sx + l.width/2, l.y + l.height/2, '#00ff88');
-                    Pools.letters.push(Entities.letters.splice(i, 1)[0]);
+        for (let i = this.entities.letters.length - 1; i >= 0; i--) {
+            let l = this.entities.letters[i];
+            if (this.entities.hitTest(pX, pY, pW, pH, l.x, l.y, l.width, l.height)) {
+                if (l.char === this.state.currentWord[this.state.lettersCollected]) {
+                    this.state.lettersCollected++;
+                    // Explosion color = forest green (secondary)
+                    this.entities.createExplosion(l.x + l.width / 2, l.y + l.height / 2, '#4f7942');
+
+                    // Add some value for getting a letter if desired, removed score usage
+                    this.updateHUD();
+
+                    this.entities.pools.letters.push(this.entities.letters.splice(i, 1)[0]);
                 }
             }
         }
     }
 
-    function updateUI() {
-        DOM.score.textContent = `${Math.floor(State.totalDistance)}/${State.currentTarget}m`;
-        DOM.lives.textContent = State.lives;
-        DOM.level.textContent = State.level;
-        DOM.speed.textContent = `${State.gameSpeed.toFixed(1)}x`;
-        const word = State.currentWord || '';
-        DOM.wordProgress.textContent = word.split('').map((c, i) => i < State.lettersCollected ? c : '_').join(' ') || '---';
-    }
-
-    // 9. RENDERIZAÇÃO (DRAW)
-    function draw() {
-        DOM.ctx.clearRect(0, 0, Env.width, Env.height);
-
-        if (SPRITES.fundo && SPRITES.fundo.complete) {
-            const scale = Math.max(Env.width / SPRITES.fundo.naturalWidth, Env.height / SPRITES.fundo.naturalHeight);
-            const w = SPRITES.fundo.naturalWidth * scale;
-            const parallax = (Env.cameraX * 0.2) % w;
-            DOM.ctx.drawImage(SPRITES.fundo, -parallax, 0, w, SPRITES.fundo.naturalHeight * scale);
-            DOM.ctx.drawImage(SPRITES.fundo, w - parallax, 0, w, SPRITES.fundo.naturalHeight * scale);
+    update(dt) {
+        if (this.state.status !== 'playing') {
+            // Stars still scroll slowly
+            this.entities.stars.forEach(s => {
+                s.x += s.speed * CONFIG.GAME.PARALLAX_SPEED * 0.5 * dt;
+                if (s.x > this.engine.width + 100) s.x = -100;
+            });
+            return;
         }
 
-        DOM.ctx.fillStyle = '#fff';
-        Entities.stars.forEach(s => {
-            DOM.ctx.globalAlpha = 0.3 + (s.layer * 0.2);
-            DOM.ctx.fillRect(Utils.toScreenX(s.x), s.y, s.size, s.size);
-        });
-        DOM.ctx.globalAlpha = 1;
+        this.player.update(dt, this.input);
 
-        Entities.letters.forEach(l => {
-            const sx = Utils.toScreenX(l.x);
-            l.pulse += 0.1;
-            DOM.ctx.fillStyle = `rgba(50, 205, 50, ${0.8 + Math.sin(l.pulse) * 0.2})`;
-            DOM.ctx.fillRect(sx, l.y, l.width, l.height);
-            DOM.ctx.fillStyle = '#fff';
-            DOM.ctx.font = `bold ${Math.floor(20 * Env.mobileScale)}px Arial`;
-            DOM.ctx.textAlign = 'center';
-            DOM.ctx.textBaseline = 'middle';
-            DOM.ctx.fillText(l.letter, sx + l.width / 2, l.y + l.height / 2);
-        });
-
-        if (Player.invulnerable % 10 < 5) {
-            DOM.ctx.save();
-            if (SPRITES.player && SPRITES.player.complete) {
-                DOM.ctx.translate(Player.x + Player.width, Player.y);
-                DOM.ctx.scale(-1, 1);
-                DOM.ctx.drawImage(SPRITES.player, 0, 0, Player.width, Player.height);
-            } else {
-                DOM.ctx.fillStyle = '#1E90FF';
-                DOM.ctx.fillRect(Player.x, Player.y, Player.width, Player.height);
-            }
-            DOM.ctx.restore();
+        let currentChar = null;
+        if (this.state.lettersCollected < this.state.currentWord.length) {
+            currentChar = this.state.currentWord[this.state.lettersCollected];
         }
 
-        Entities.enemies.forEach(e => {
-            const sprite = SPRITES[TYPE_TO_SPRITE[e.type]];
-            if (sprite && sprite.complete) {
-                DOM.ctx.drawImage(sprite, Utils.toScreenX(e.x), e.y, e.width, e.height);
-            } else {
-                DOM.ctx.fillStyle = '#f00';
-                DOM.ctx.fillRect(Utils.toScreenX(e.x), e.y, e.width, e.height);
-            }
-        });
+        this.entities.update(dt, this.state.gameSpeedMult, currentChar);
+        this.checkCollisions();
 
-        Entities.particles.forEach(p => {
-            DOM.ctx.fillStyle = p.color;
-            DOM.ctx.globalAlpha = p.life / p.maxLife;
-            DOM.ctx.fillRect(Utils.toScreenX(p.x), p.y, p.size, p.size);
-        });
-        DOM.ctx.globalAlpha = 1;
-    }
+        this.state.timeElapsed += dt;
+        this.state.scrollX += (CONFIG.GAME.METERS_UNIT / 2) * this.state.gameSpeedMult * dt;
 
-    // 10. GAME LOOP E INICIALIZAÇÃO
-    function gameLoop(time) {
-        if (Env.imagesLoaded < Env.totalImages) {
-            requestAnimationFrame(gameLoop); return;
+        // Update time dynamically every frame in HUD
+        this.ui.timeElapsed.textContent = this.formatTime(this.state.timeElapsed);
+
+        // Win Condition: Word Completed
+        if (this.state.lettersCollected >= this.state.currentWord.length) {
+            this.winLevel();
         }
-        const dt = Math.min(20, time - Env.lastTime);
-        Env.lastTime = time;
-
-        update(dt);
-        draw();
-        requestAnimationFrame(gameLoop);
     }
 
-    function initStars() {
-        Entities.stars = Array.from({ length: CONFIG.STAR_COUNT }, () => ({
-            x: Math.random() * 8000, y: Math.random() * Env.height,
-            size: Math.random() * 2.5 + 0.5, speed: Math.random() * 0.3 + 0.05, layer: Math.floor(Math.random() * 3)
-        }));
+    draw(ctx) {
+        ctx.clearRect(0, 0, this.engine.width, this.engine.height);
+
+        const bg = ASSETS.images.fundo;
+        if (bg && bg.complete) {
+            const scale = Math.max(this.engine.width / bg.naturalWidth, this.engine.height / bg.naturalHeight);
+            const w = bg.naturalWidth * scale;
+            const h = bg.naturalHeight * scale;
+
+            // Scroll moving logically against the player, background goes right
+            const parallaxX = (this.state.scrollX) % w;
+
+            ctx.drawImage(bg, parallaxX, 0, w, h);
+            ctx.drawImage(bg, parallaxX - w, 0, w, h);
+        } else {
+            // Fill an earthy fallback background
+            ctx.fillStyle = '#1c1510';
+            ctx.fillRect(0, 0, this.engine.width, this.engine.height);
+        }
+
+        this.entities.draw(ctx);
+
+        if (this.state.status === 'playing' || this.state.status === 'levelcomplete' || this.state.status === 'gameover') {
+            this.player.draw(ctx);
+        }
     }
+}
 
-    function setupGame(isRestart = false) {
-        Object.assign(State, {
-            totalDistance: 0, currentTarget: isRestart ? 100 : State.currentTarget, 
-            lives: 3, level: isRestart ? 1 : State.level,
-            gameOver: false, levelComplete: false,
-            enemySpawnTimer: 0, lastEnemySpawnDistance: -500,
-            currentWord: Utils.pickRandomWord(), lettersCollected: 0, missedLetter: false
-        });
-        
-        Env.cameraX = 0;
-        Player.x = 50; Player.y = Env.height / 2; Player.invulnerable = 120;
-        
-        // Devolve tudo pros pools
-        Pools.enemies.push(...Entities.enemies.splice(0, Entities.enemies.length));
-        Pools.particles.push(...Entities.particles.splice(0, Entities.particles.length));
-        Pools.letters.push(...Entities.letters.splice(0, Entities.letters.length));
-        
-        spawnLetter();
-        DOM.gameOver.style.display = 'none';
-        DOM.levelComplete.style.display = 'none';
-        updateUI();
-    }
-
-    // EXPORTAÇÃO PARA O HTML
-    window.restartGame = () => setupGame(true);
-    window.nextLevel = () => {
-        State.level++;
-        State.currentTarget += 100;
-        State.gameSpeed = Math.min(2.8, 1.0 + (State.level - 1) * 0.15);
-        setupGame(false);
-    };
-
-    async function init() {
-        resizeCanvas();
-        let timeout;
-        window.addEventListener('resize', () => { clearTimeout(timeout); timeout = setTimeout(resizeCanvas, 100); });
-        
-        document.addEventListener('keydown', e => Input.keys[e.code] = true);
-        document.addEventListener('keyup', e => Input.keys[e.code] = false);
-        DOM.canvas.addEventListener('touchstart', e => { Input.touch.active = true; Input.touch.x = e.touches[0].clientX; Input.touch.y = e.touches[0].clientY; }, { passive: false });
-        DOM.canvas.addEventListener('touchmove', e => { e.preventDefault(); Input.touch.x = e.touches[0].clientX; Input.touch.y = e.touches[0].clientY; }, { passive: false });
-        DOM.canvas.addEventListener('touchend', () => Input.touch.active = false);
-
-        Object.values(SPRITES).forEach(img => {
-            if (!img) return; Env.totalImages++;
-            if (img.complete && img.naturalWidth > 0) Env.imagesLoaded++;
-            else { img.addEventListener('load', () => Env.imagesLoaded++, { once: true }); img.addEventListener('error', () => Env.imagesLoaded++, { once: true }); }
-        });
-
-        initStars();
-        await loadDictionary();
-        setupGame(true);
-        requestAnimationFrame(gameLoop);
-    }
-
-    init();
-})();
+window.addEventListener('load', () => {
+    window.gameInstance = new Game();
+});
