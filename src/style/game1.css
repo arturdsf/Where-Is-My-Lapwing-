@@ -1,0 +1,438 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+html,body{
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    font-family:Arial, sans-serif;
+    background:#87CEEB;
+}
+#map-container {
+    position: relative;
+    width: 200vw;
+    height: 200vh;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); 
+    will-change: transform;
+    backface-visibility: hidden;
+    perspective: 1000;
+}
+.env {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transform: translateZ(0); /* Força a renderização em GPU e previne engasgos (lag) ao renderizar os mapas */
+    will-change: transform;
+}
+.env.biome-0{background-image: url('../assets/game1-assets/wallpaper-normal.png');}
+.env.biome-1{background-image: url('../assets/game1-assets/wallpaper-geada.png');}
+.env.biome-2{background-image: url('../assets/game1-assets/wallpaper-geada-lado.png');}
+.env.biome-3{background-image: url('../assets/game1-assets/wallpaper-mato.png');}
+
+.player {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: url("../assets/player.png") center/contain no-repeat;
+    pointer-events: none;
+    will-change: transform;
+    z-index: 10;
+}
+
+.npc {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    will-change: transform;
+    z-index: 8;
+}
+
+.npc.following{
+    width: 40px;
+    height: 40px;
+}
+
+.npc.next-target {
+    box-shadow: 0 0 15px 5px rgba(255, 255, 0, 0.5);
+    animation: pulsarBrilho 2s infinite ease-in-out;
+    z-index: 10; 
+}
+
+@keyframes pulsarBrilho {
+    0%, 100% {
+        box-shadow: 0 0 15px 5px rgba(255, 255, 0, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 25px 10px rgba(255, 255, 0, 0.7);
+    }
+}
+
+/* NPCs */
+
+#pai {background-image: url(../assets/paiqueroquero_static.png);}
+#filhote {background-image: url(../assets/filhotes_static.png);}
+#capivara {background-image: url(../assets/capivara_static.png);}
+#cavalo {background-image: url(../assets/cavalo_static.png);}
+#jacana {background-image: url(../assets/jacana_static.png);}
+#urutau {background-image: url(../assets/urutu_static.png);}
+#graxaim {background-image: url(../assets/graxaim_static.png);}
+#carcara {background-image: url(../assets/carcara_static.png);}
+#filhote_final {background-image: url(../assets/filhoteperdido_scream.png);}
+
+.obstacle {
+    position: absolute;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    will-change: transform;
+    z-index: 5;
+}
+
+.obs-pedra {
+    background-image: url('../assets/game1-assets/stone.png');
+}
+.obs-arbusto {
+    background-image: url('../assets/game4-assets/moita.png');
+}
+.obs-graveto {
+    background-image: url('../assets/game1-assets/stick.png');
+}
+
+#quest-box{
+    position:fixed;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,0.7);
+    color:#fff;
+    padding:8px 16px;
+    border-radius:8px;
+    z-index:1000;
+}
+
+#dialogue-box{
+    position:fixed;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:90%;
+    background:rgba(0,0,0,0.9);
+    color:#fff;
+    padding:12px;
+    border:4px solid #fff;
+    font-size:18px;
+    display:none;
+    z-index:1000;
+    cursor: pointer;
+}
+
+#dialogue-hint{position:absolute;bottom:8px;right:12px;font-size:12px;opacity:0.6;}
+
+
+#quest-box {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  background: rgba(0,0,0,0.85);
+  color: white;
+  border: 3px solid white;
+  padding: 10px 16px;
+  font-size: 18px;
+  z-index: 20;
+  text-align: center;
+}
+
+/* Identificador de mapas */
+
+#biome-arrows {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 900;
+}
+
+.arrow {
+    position: absolute;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 20px;
+}
+
+.arrow-up { top: 70px; left: 50%; transform: translateX(-50%); }
+.arrow-down { bottom: 20px; left: 50%; transform: translateX(-50%); }
+.arrow-left { left: 20px; top: 50%; transform: translateY(-50%); }
+.arrow-right { right: 20px; top: 50%; transform: translateY(-50%); }
+
+.npc.next-target {
+    filter:    
+        drop-shadow(0 0 5px rgba(255, 255, 0,   1)) 
+        drop-shadow(0 0 15px rgba(255, 255, 0, 0.8)) 
+        drop-shadow(0 0 30px rgba(255, 255, 0, 0.4));
+    animation: pulsarBrilhoPNG 2s infinite ease-in-out;
+    box-shadow: none !important;
+    z-index: 100;
+}
+
+@keyframes pulsarBrilhoPNG {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px rgba(255, 255, 0, 0.5));
+    }
+    50% {
+        filter: drop-shadow(0 0 15px rgba(255, 255, 0, 0.9));
+    }
+}
+
+/* Media Queries */
+
+@media (max-width: 768px) {
+    .player, .npc {
+        width: 40px;
+        height: 40px;
+    }
+
+    .npc.following {
+        width: 32px;
+        height: 32px;
+    }
+
+    #quest-box {
+        top: 10px;
+        padding: 8px 12px;
+        font-size: 16px;
+        width: 85%;
+    }
+
+    #dialogue-box {
+        width: 95%;
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    #dialogue-hint {
+        font-size: 11px;
+        bottom: 6px;
+        right: 10px;
+    }
+
+    .arrow {
+        padding: 8px;
+        font-size: 18px;
+    }
+
+    .arrow-up { top: 60px; }
+    .arrow-down { bottom: 15px; }
+    .arrow-left { left: 15px; }
+    .arrow-right { right: 15px; }
+}
+
+@media (max-width: 480px) {
+    .player, .npc {
+        width: 35px;
+        height: 35px;
+    }
+
+    .npc.following {
+        width: 28px;
+        height: 28px;
+    }
+
+    #quest-box {
+        top: 5px;
+        padding: 6px 10px;
+        font-size: 14px;
+        width: 90%;
+    }
+
+    #dialogue-box {
+        width: 98%;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    #dialogue-hint {
+        font-size: 10px;
+        bottom: 4px;
+        right: 8px;
+    }
+
+    .arrow {
+        padding: 6px;
+        font-size: 16px;
+    }
+
+    .arrow-up { top: 50px; }
+    .arrow-down { bottom: 10px; }
+    .arrow-left { left: 10px; }
+    .arrow-right { right: 10px; }
+}
+
+/* --- CONTROLES MOBILE --- */
+
+#joystick-zone {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 150px;
+    height: 150px;
+    z-index: 1000;
+    touch-action: none;
+}
+
+#joystick-base {
+    position: absolute;
+    bottom: 25px; 
+    left: 25px;
+    width: 100px; 
+    height: 100px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+}
+
+#joystick-stick {
+    position: absolute;
+    top: 25px; 
+    left: 25px;
+    width: 50px; 
+    height: 50px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    transform: translate(0px, 0px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+#rotate-warning {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #000; color: #fff;
+    z-index: 9999;
+    align-items: center; justify-content: center;
+    font-size: 20px; text-align: center;
+    padding: 20px;
+}
+
+/* --- OVERLAYS E MENU PERSISTENTE --- */
+#persistent-menu-btn {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: 24px;
+    line-height: 45px;
+    text-align: center;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+    user-select: none;
+    border: 2px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+#persistent-menu-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+#game-menu-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+#game-menu-modal {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 25px 35px;
+    border-radius: 12px;
+    text-align: center;
+    border: 3px solid #666;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 250px;
+}
+
+#menu-title {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.menu-btn {
+    padding: 12px 20px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: #8B4513; /* Marrom escuro */
+    color: white;
+    font-weight: bold;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.menu-btn:hover {
+    background-color: #A0522D;
+    transform: scale(1.02);
+}
+
+.menu-btn:active {
+    transform: scale(0.98);
+}
+
+#btn-continuar {
+    background-color: #2E8B57; /* Verde */
+}
+
+#btn-continuar:hover {
+    background-color: #3CB371;
+}
+
+#btn-reiniciar {
+    background-color: #B22222; /* Vermelho */
+}
+
+#btn-reiniciar:hover {
+    background-color: #CD5C5C;
+}
+
+@media (max-width: 768px) {
+    #persistent-menu-btn {
+        width: 35px;
+        height: 35px;
+        line-height: 35px;
+        font-size: 20px;
+        top: 10px;
+        right: 10px;
+    }
+}
+
+@media (orientation: portrait) {
+    body.is-touch #rotate-warning {
+        display: flex;
+    }
+}

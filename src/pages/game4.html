@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>O Grande Encontro</title>
+  <link rel="shortcut icon" href="../assets/iconOfSite.png" type="image/png">
+  <link rel="stylesheet" href="../style/game4.css">
+
+  <link rel="preload" href="../assets/game4-assets/ceu.png" as="image">
+  <link rel="preload" href="../assets/game4-assets/mold_forest.png" as="image">
+  <link rel="preload" href="../assets/player.png" as="image">
+</head>
+<body>
+    <div id="viewport">
+      <main id="game-board">
+        <div id="player"></div>
+        <div id="foreground-layer"></div>
+        <div id="interaction-bubble" class="interaction-bubble" style="display: none;">Aperte "E"</div>
+      </main>
+
+      <!-- CONTROLES MOBILE-->
+      <div id="orientation-warning">
+        <h1>Gire o celular! 📱➡️</h1>
+        <p>O jogo só funciona com a tela deitada.</p>
+      </div>
+
+      <div id="mobile-controls">
+        <div id="d-pad">
+          <div id="btn-up" class="touch-btn">▲</div>
+          <div id="btn-left" class="touch-btn">◀</div>
+          <div id="d-pad-center"></div> <div id="btn-right" class="touch-btn">▶</div>
+          <div id="btn-down" class="touch-btn">▼</div>
+        </div>
+  
+  <div id="action-zone">
+    <div id="btn-interact" class="touch-btn interact-btn">E</div>
+  </div>
+</div>
+    </div>
+
+    <div id="minigame-container" style="display: none;">
+      <div id="minigame-box">
+        <div id="mg-header">
+          <h2 id="mg-title">Minijogo</h2>
+          <div class="hearts-box">
+            <span id="score-counter">0/3</span>
+            <span id="counter">05</span>
+          </div>
+        </div>
+        <p id="mg-desc">Instruções</p>
+        <div id="mg-content"></div>
+        <button id="mg-close" onclick="closeMinigame()">Fugir</button>
+      </div>
+    </div>
+
+    <div id="dialog-system" style="display: none;">
+      <div id="dialog-box">
+        <img id="dialog-ft" src="" alt="Animal">
+
+        <div id="dialog-text-container">
+          <h3 id="dialog-name">Nome</h3>
+          <div id="dialog-text">Texto do diálogo...</div>
+        </div>
+
+        <div id="dialog-next-zone" onclick="dialogSystem.next()">
+          <span>Continuar ▼</span>
+        </div>
+      </div>
+    </div>
+
+  <!-- Daqui para baixo são elementos de UI ou menus -->
+   
+  <div id="ui">
+    <div id="friends-counter">Amigos <span id="prog">0/10</span></div>
+
+    <div id="hint">
+      <span id="ui-hint-text">Dica</span>
+    </div>
+
+    <div onclick="togglePause()" id="pause-btn">| |</div>
+  </div>
+
+  <div id="main-menu">
+    <div><h1>O Grande Encontro</h1></div>
+    <div class="controls-list">
+      <h2>Controles:</h2>
+      <p><strong>WASD / Setas:</strong> Andar</p>
+      <p><strong>Espaço:</strong> Iniciar o jogo, reiniciar (ao perder)</p>
+      <p><strong>ESC:</strong> Pausar, voltar a jogar</p>
+      <p><strong>F11:</strong> Tela cheia</p>
+      <p><strong>E:</strong> Interagir</p>
+    </div>
+    <div>
+      <button type="button" id="back-btn" onclick="backToIndex()">◀</button>
+      <button onclick="startGame()">Iniciar</button>
+    </div>
+  </div>
+
+  <div id="pause-menu">
+    <div><h1>Jogo Pausado!</h1></div>
+    <div class="controls-list">
+      <h2>Controles:</h2>
+      <p><strong>WASD / Setas:</strong> Andar</p>
+      <p><strong>Espaço:</strong> Iniciar o jogo, reiniciar (ao perder)</p>
+      <p><strong>ESC:</strong> Pausar, voltar a jogar</p>
+      <p><strong>F11:</strong> Tela cheia</p>
+      <p><strong>E:</strong> Interagir</p>
+    </div>
+    <div class="pause-options">
+      <div onclick="backToIndex()">◀</div>
+      <div onclick="play()">&#9654;</div>
+    </div>
+  </div>
+
+  <div id="game-complete">
+    <div><h1>Ufa!</h1></div>
+    <div>
+      <p>Você conseguiu encontrar o filhote e reunir toda a família! Ouvi dizer que a Mamãe Quero-Quero disse um muito obrigado...</p>
+    </div>
+    <div class="win-options">
+      <div onclick="backToIndex()">◀</div>
+      <div onclick="restartGame()">Jogar novamente</div>
+    </div>
+  </div>
+
+  <!-- Área para scripts -->
+  <script src="../scripts/game4.js"></script>
+</body>
+</html>

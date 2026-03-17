@@ -1,0 +1,62 @@
+html {
+scroll-behavior: smooth;
+}
+
+.hero {
+padding-top:120px;
+padding-bottom:100px;
+background: linear-gradient(#680c49,#250417);
+color:white;
+}
+
+.autor-img{
+width:180px;
+border-radius:50%;
+}
+
+.livro-img {
+  width: 100%;
+  height: 350px;
+  object-fit: contain;
+  background-color: #f8f9fa;
+  padding: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+  border-radius: 8px;
+}
+
+.livro-img:hover {
+  transform: scale(1.05);
+  background-color: #e2e6ea;
+}
+
+.jogo-card img{
+width:100%;
+}
+
+.footer{
+background:#111;
+color:white;
+padding:30px;
+margin-top:40px;
+}
+
+.icone-contato {
+  width: 24px; 
+  height: auto;
+}
+
+h1, h2 {
+  font-family: 'Itim', cursive !important;
+}
+
+#tituloLivro {
+  font-family: 'Itim', cursive !important;
+  font-size: 1.5rem;
+  color: #ffc107;
+}
+
+.modal-content {
+  border: 1px solid #444;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}

@@ -1,0 +1,22 @@
+/* Keep it minimal, mostly standard resets since Tailwind handles the rest */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-image: url('../assets/game3-assets/fundo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #2c221a; /* fallback dark color */
+    touch-action: none; /* Prevent scroll on mobile devices */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+canvas {
+    display: block;
+    image-rendering: pixelated; /* Often good for 2D pixel-ish games, optional */
+}
