@@ -96,7 +96,11 @@
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
         dialogueBox.addEventListener('click', advanceDialogue);
-        window.addEventListener('resize', onResize);
+        window.addEventListener('resize', () => {
+            updateDimensions();
+            createNPCs();
+            applyContainerTransform();
+        });
         requestAnimationFrame(loop);
 
         // jogar a função de tela cheia em algum lugar aqui
@@ -104,10 +108,12 @@
 
     function initMenu() {
         persistentMenuBtn.addEventListener('click', () => {
+            enterFullscreen();
             if (!isGameOver) openMenu('Pausado');
         });
 
         btnContinuar.addEventListener('click', () => {
+            enterFullscreen();
             closeMenu();
         });
 
@@ -179,23 +185,34 @@
         for (let i = 0; i < 1000; i++) trail.push({ x: player.worldX, y: player.worldY });
     }
 
+    const REF_W = 1000; 
+    const REF_H = 800;
+
     function createNPCs() {
+        npcs.length = 0;
         npcDefs.forEach(def => {
             const npc = Object.assign({}, def);
-            const pctX = def.localX / 1000;
-            const pctY = def.localY / 800;
-            npc.worldX = def.envX * window.innerWidth + (pctX * window.innerWidth);
-            npc.worldY = def.envY * window.innerHeight + (pctY * window.innerHeight);
+            
+            const pctX = def.localX / REF_W;
+            const pctY = def.localY / REF_H;
+
+            npc.worldX = (def.envX * window.innerWidth) + (pctX * window.innerWidth);
+            npc.worldY = (def.envY * window.innerHeight) + (pctY * window.innerHeight);
+            
             npc.following = false;
             npc.talked = false;
-            npc.el = document.createElement('div');
-            npc.el.className = 'npc';
-            npc.el.id = def.id;
-            mapContainer.appendChild(npc.el);
+            
+            let el = document.getElementById(def.id);
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'npc';
+                el.id = def.id;
+                mapContainer.appendChild(el);
+            }
+            npc.el = el;
             npcs.push(npc);
         });
     }
-
     function updatePlayer(dt) {
         let dx = 0, dy = 0;
 
@@ -339,11 +356,14 @@
     }
 
     function endDialogue() {
-        dialogueBox.style.display = 'none';
-        dialogueActive = false;
-        handleNpcTalk(currentDialogNpc);
-        currentDialogNpc.talked = true;
+    dialogueBox.style.display = 'none';
+    dialogueActive = false;
+    const n = currentDialogNpc;
+    handleNpcTalk(n);
+    if (sequence[nextIndex - 1] === n.id) {
+        n.talked = true;
     }
+}
 
     function handleNpcTalk(n) {
         if (sequence[nextIndex] === n.id) {
@@ -394,13 +414,9 @@
         npcs.forEach(n => {
             n.following = false;
             n.talked = false;
-            n.el.classList.remove('following');
             const def = npcDefs.find(d => d.id === n.id);
-            const pctX = def.localX / 1000;
-            const pctY = def.localY / 800;
-            
-            n.worldX = def.envX * window.innerWidth + (pctX * window.innerWidth);
-            n.worldY = def.envY * window.innerHeight + (pctY * window.innerHeight);
+            n.worldX = def.envX * window.innerWidth + (def.localX / 1000 * window.innerWidth);
+            n.worldY = def.envY * window.innerHeight + (def.localY / 800 * window.innerHeight);
         });
         updateQuest();
     }
@@ -448,40 +464,15 @@
     }
 
     function onResize() {
-        const oldW = worldWidth / 2;
-        const oldH = worldHeight / 2;
-
         updateDimensions();
-
-        const newW = window.innerWidth;
-        const newH = window.innerHeight;
-
-        const scaleX = newW / oldW;
-        const scaleY = newH / oldH;
-
-        player.worldX *= scaleX;
-        player.worldY *= scaleY;
-
-        trail.forEach(pt => {
-            pt.x *= scaleX;
-            pt.y *= scaleY;
-        });
-
         npcs.forEach(n => {
             const def = npcDefs.find(d => d.id === n.id);
-            const pctX = def.localX / 1000;
-            const pctY = def.localY / 800;
+            const pctX = def.localX / REF_W;
+            const pctY = def.localY / REF_H;
 
-            n.worldX = n.envX * newW + (pctX * newW);
-            n.worldY = n.envY * newH + (pctY * newH);
+            n.worldX = (n.envX * window.innerWidth) + (pctX * window.innerWidth);
+            n.worldY = (n.envY * window.innerHeight) + (pctY * window.innerHeight);
         });
-
-        obstacles.forEach(obs => {
-            obs.x *= scaleX;
-            obs.y *= scaleY;
-            obs.el.style.transform = `translate3d(${obs.x}px, ${obs.y}px, 0)`;
-        });
-
         applyContainerTransform();
     }
 
