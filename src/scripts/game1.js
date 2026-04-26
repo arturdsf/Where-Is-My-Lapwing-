@@ -63,7 +63,7 @@
 
     const npcDefs = [
         { id: 'pai', envX: 0, envY: 1, localX: 300, localY: 150, dialog: ['Eu sou a Mamãe Quero-Quero.'] },
-        { id: 'filhote', envX: 0, envY: 1, localX: 240, localY: 200, dialog: ['Somos os filhtes Quero-Quero.'] },
+        { id: 'filhote', envX: 0, envY: 1, localX: 240, localY: 200, dialog: ['Somos os filhotes Quero-Quero.'] },
         { id: 'capivara', envX: 0, envY: 1, localX: 400, localY: 300, dialog: ['Eu sou a Capivara.'] },
         { id: 'cavalo', envX: 0, envY: 0, localX: 300, localY: 400, dialog: ['~ Relincho ~ Sou o cavalo.'] },
         { id: 'jacana', envX: 1, envY: 0, localX: 200, localY: 200, dialog: ['Eu sou a Jaçanã.'] },
@@ -478,6 +478,25 @@
     }
 
     function onResize() {
+        const oldWorldW = worldWidth;
+        const oldWorldH = worldHeight;
+
+        updateDimensions();
+
+        const ratiopX = player.worldX / oldWorldW;
+        const ratiopY = player.worldY / oldWorldH;
+
+        player.worldX = ratiopX * worldWidth;
+        player.worldY = ratiopY * worldHeight;
+
+        obstacles.forEach(obs => {
+            const ratiooX = obs.x / oldWorldW;
+            const ratiooY = obs.y / oldWorldH;
+            obs.x = ratiooX * worldWidth;
+            obs.y = ratiooY * worldHeight;
+            obs.el.style.transform = `translate3d(${obs.x}px, ${obs.y}px, 0)`;
+        })
+
         updateDimensions();
         npcs.forEach(n => {
             const def = npcDefs.find(d => d.id === n.id);
@@ -487,6 +506,8 @@
             n.worldX = (n.envX * window.innerWidth) + (pctX * window.innerWidth);
             n.worldY = (n.envY * window.innerHeight) + (pctY * window.innerHeight);
         });
+
+        updateContainer();
         applyContainerTransform();
     }
 
